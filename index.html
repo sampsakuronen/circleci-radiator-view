@@ -138,7 +138,7 @@
       var tokenInput = document.querySelector('.api-token-input')
       tokenInput.style.display = 'flex'
 
-      apiTokenSubmit.addEventListener('click', () => {
+      apiTokenSubmit.addEventListener('click', function() {
         tokenInput.style.display = 'none'
         start(apiToken.value)
       })

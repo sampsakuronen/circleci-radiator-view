@@ -4,17 +4,16 @@ Cirle CI lacks a nice radiator dashboard. I made this for the needs of our team.
 
 *All pull requests are welcome.*
 
-![Circle CI Radiator view](/readme_radiator.jpg?raw=true "Circle CI Radiator view")
-
 ## Setup
 
 1. Get your API token: https://circleci.com/account/api
-2. Host index.html` in some way: `python -m SimpleHTTPServer 8080`
+2. Host `index.html` in some way: `python -m SimpleHTTPServer 8080`
 
 You can either enter the token to the page or use a query parameter:
 
     https://yourdomain.com/?token=835li2ixxxxxxxxxxxxxxxxxxxxxxxxxx1sd41
 
+![Circle CI Radiator view](/readme_radiator.jpg?raw=true "Circle CI Radiator view")
 
 ## Licence
 

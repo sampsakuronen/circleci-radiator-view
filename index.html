@@ -72,23 +72,23 @@
 
   <script>
     var circleApiToken
-    const updateInterval = 10 * 1000
+    var updateInterval = 10 * 1000
 
-    const radiator = document.getElementById('radiator')
-    const apiToken = document.getElementById('apitoken')
-    const apiTokenSubmit = document.getElementById('submit')
+    var radiator = document.getElementById('radiator')
+    var apiToken = document.getElementById('apitoken')
+    var apiTokenSubmit = document.getElementById('submit')
 
     function createRepository(repository) {
-      const project = repository.reponame
+      var project = repository.reponame
 
-      _.map(repository.branches, (branch, name) => {
-        const buildStatus = branch.recent_builds[0].outcome
-        const buildName = `${project}: ${name}`
-        const buildTime = new Date(branch.recent_builds[0].pushed_at)
+      _.map(repository.branches, function(branch, name) {
+        var buildStatus = branch.recent_builds[0].outcome
+        var buildName = `${project}: ${name}`
+        var buildTime = new Date(branch.recent_builds[0].pushed_at)
 
-        const newNode = document.createElement('li')
-        const header = document.createElement('h1')
-        const description = document.createElement('time')
+        var newNode = document.createElement('li')
+        var header = document.createElement('h1')
+        var description = document.createElement('time')
 
         header.textContent = buildName
         description.textContent = `
@@ -115,8 +115,8 @@
     }
 
     function getDataAndCreateRadiator() {
-      const url = 'https://circleci.com/api/v1/projects?circle-token=' + circleApiToken
-      const options = {
+      var url = 'https://circleci.com/api/v1/projects?circle-token=' + circleApiToken
+      var options = {
         headers: {
           'Accept': 'application/json'
         }
@@ -131,11 +131,11 @@
       getDataAndCreateRadiator()
     }
 
-    const query = window.location.search
+    var query = window.location.search
     if (query.substr(1, 6) === 'token=') {
       start(query.substr(7, query.length))
     } else {
-      const tokenInput = document.querySelector('.api-token-input')
+      var tokenInput = document.querySelector('.api-token-input')
       tokenInput.style.display = 'flex'
 
       apiTokenSubmit.addEventListener('click', () => {

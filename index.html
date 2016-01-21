@@ -1,0 +1,147 @@
+<!doctype html>
+<head>
+  <title>Radiator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.0.0/lodash.min.js"></script>
+</head>
+<style>
+  html, body {margin: 0; padding:0 ; width: 100%; height: 100%; box-sizing:border-box; background: black;}
+  ul {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    height: 100%;
+  }
+  li {
+    list-style: none;
+    font-family: Menlo;
+    color: white;
+    text-align: center;
+    border-top: 2px solid black;
+  }
+  li:first-child {
+    border-top: 0;
+  }
+  .success {
+    background: green;
+  }
+  .failed {
+    background: red;
+  }
+  pre {
+    text-align: left;
+    padding: 0 20%;
+  }
+
+  .fill-height-or-more {
+    display: flex;
+    flex-direction: column;
+  }
+  .fill-height-or-more > li {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  #radiator {
+    display: none;
+  }
+
+  .api-token-input {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    height: inherit;
+  }
+  input[type="password"], input[type="submit"] {
+    max-width: 50%;
+    max-height: 25%;
+    min-width: 320px;
+    min-height: 60px;
+  }
+
+</style>
+<body>
+  <div class="api-token-input">
+    <input type="password" id="apitoken" placeholder="CircleCI API token" autofocus></input>
+    <input type="submit" value="Begin" id="submit"></input>
+  </div>
+
+  <ul id="radiator" class="fill-height-or-more">
+  </ul>
+
+  <script>
+    var circleApiToken
+    const updateInterval = 10 * 1000
+
+    const radiator = document.getElementById('radiator')
+    const apiToken = document.getElementById('apitoken')
+    const apiTokenSubmit = document.getElementById('submit')
+
+    function createRepository(repository) {
+      const project = repository.reponame
+
+      _.map(repository.branches, (branch, name) => {
+        const buildStatus = branch.recent_builds[0].outcome
+        const buildName = `${project}: ${name}`
+        const buildTime = new Date(branch.recent_builds[0].pushed_at)
+
+        const newNode = document.createElement('li')
+        const header = document.createElement('h1')
+        const description = document.createElement('time')
+
+        header.textContent = buildName
+        description.textContent = `
+          ${buildTime.getDate()}.${buildTime.getMonth() + 1}.${buildTime.getFullYear()}
+          ${buildTime.getHours()}:${buildTime.getMinutes()}
+        `
+
+        newNode.innerHTML = header.outerHTML + description.outerHTML
+        newNode.className = buildStatus
+
+        radiator.innerHTML = radiator.innerHTML + newNode.outerHTML
+      })
+    }
+
+    function createJobList(data) {
+      radiator.innerHTML = ''
+      radiator.style.display = 'flex'
+
+      _.map(data, createRepository)
+    }
+
+    function createRadiator(response) {
+      response.json().then(createJobList)
+    }
+
+    function getDataAndCreateRadiator() {
+      const url = 'https://circleci.com/api/v1/projects?circle-token=' + circleApiToken
+      const options = {
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+
+      fetch(url, options).then(createRadiator)
+    }
+
+    function start(apiToken) {
+      circleApiToken = apiToken
+      setInterval(getDataAndCreateRadiator, updateInterval)
+      getDataAndCreateRadiator()
+    }
+
+    const query = window.location.search
+    if (query.substr(1, 6) === 'token=') {
+      start(query.substr(7, query.length))
+    } else {
+      const tokenInput = document.querySelector('.api-token-input')
+      tokenInput.style.display = 'flex'
+
+      apiTokenSubmit.addEventListener('click', () => {
+        tokenInput.style.display = 'none'
+        start(apiToken.value)
+      })
+    }
+  </script>
+</body>

@@ -110,19 +110,21 @@
       _.map(data, createRepository)
     }
 
-    function createRadiator(response) {
-      response.json().then(createJobList)
-    }
-
     function getDataAndCreateRadiator() {
       var url = 'https://circleci.com/api/v1/projects?circle-token=' + circleApiToken
-      var options = {
-        headers: {
-          'Accept': 'application/json'
+
+      var request = new XMLHttpRequest()
+      request.open('GET', url, true)
+      request.setRequestHeader('Accept', 'application/json')
+
+      request.onload = function() {
+        if (request.status >= 200 && request.status < 400) {
+          var data = JSON.parse(request.responseText)
+          createJobList(data)
         }
       }
 
-      fetch(url, options).then(createRadiator)
+      request.send()
     }
 
     function start(apiToken) {

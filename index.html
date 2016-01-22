@@ -27,18 +27,18 @@
     color: white;
     text-align: center;
     border-top: 1px solid rgba(0,0,0, 0.3);
-
+    background-color: #e4e4e4;
   }
   li:first-child {
     border-top: 0;
   }
-  .success {
+  .success, .fixed {
     background-color: #42c88a;
   }
-  .failed {
+  .failed, .infrastructure_fail  {
     background-color: #ed5c5c;
   }
-  .not_running {
+  .not_running, .queued, .scheduled {
     background-color: #ab7fd1;
   }
   @keyframes pulse {
@@ -48,10 +48,6 @@
     animation: pulse 5s ease-in-out infinite;
     background-color: #66d3e4;
     background-color: rgba(102, 211, 228, 1.0);
-  }
-  pre {
-    text-align: left;
-    padding: 0 20%;
   }
 
   .fill-height-or-more {
@@ -74,6 +70,7 @@
     align-items: center;
     justify-content: center;
     height: inherit;
+    background: #e4e4e4;
   }
   input[type="password"], input[type="submit"] {
     max-width: 50%;

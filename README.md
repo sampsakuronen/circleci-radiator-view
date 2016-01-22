@@ -14,7 +14,7 @@ Enter the token to the page or use a query parameter:
 
     https://yourdomain.com/?token=835li2ixxxxxxxxxxxxxxxxxxxxxxxxxx1sd41
 
-![Circle CI Radiator view](/readme_radiator.jpg?raw=true "Circle CI Radiator view")
+![Circle CI Radiator view](/readme_radiator.png?raw=true "Circle CI Radiator view")
 
 ## Licence
 

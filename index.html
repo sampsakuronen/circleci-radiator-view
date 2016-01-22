@@ -3,31 +3,42 @@
   <title>Cirle CI radiator view</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
+  <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.0.0/lodash.min.js"></script>
 </head>
 <style>
-  html, body {margin: 0; padding:0 ; width: 100%; height: 100%; box-sizing:border-box; background: black;}
-  ul {
+  html, body {
+    margin: 0;
+    padding: 0;
     width: 100%;
+    height: 100%;
+    box-sizing:border-box;
+    background: black;
+    font-family: "Roboto", Helvetica, Arial, sans-serif;
+  }
+  ul {
     padding: 0;
     margin: 0;
     height: 100%;
+    width: 100%;
   }
   li {
     list-style: none;
-    font-family: Menlo;
     color: white;
     text-align: center;
-    border-top: 2px solid black;
+    border-top: 1px solid rgba(0,0,0, 0.3);
   }
   li:first-child {
     border-top: 0;
   }
   .success {
-    background: green;
+    background: #42c88a;
   }
   .failed {
-    background: red;
+    background: #ed5c5c;
+  }
+  .running {
+    background: #66d3e4;
   }
   pre {
     text-align: left;
@@ -81,28 +92,35 @@
     var apiTokenSubmit = document.getElementById('submit')
 
     function createRepository(repository) {
+      function createBranch(branch, branchName) {
+        function createListItem() {
+          var buildIsRunning = branch.running_builds.length != 0
+          var status = buildIsRunning ? branch.running_builds[0].status : branch.recent_builds[0].outcome
+          var name = `${project}: ${decodeURIComponent(branchName)}`
+          var time = new Date(branch.recent_builds[0].pushed_at)
+
+          var newNode = document.createElement('li')
+          var header = document.createElement('h1')
+          var description = document.createElement('time')
+
+          header.textContent = name
+          description.textContent = `
+            ${time.getDate()}.${time.getMonth() + 1}.${time.getFullYear()}
+            ${time.getHours()}:${time.getMinutes()}
+          `
+
+          newNode.innerHTML = header.outerHTML + description.outerHTML
+          newNode.className = status
+
+          return newNode
+        }
+
+        var jobListItem = createListItem()
+        radiator.innerHTML = radiator.innerHTML + jobListItem.outerHTML
+      }
+
       var project = repository.reponame
-
-      _.map(repository.branches, function(branch, name) {
-        var buildStatus = branch.recent_builds[0].outcome
-        var buildName = `${project}: ${decodeURIComponent(name)}`
-        var buildTime = new Date(branch.recent_builds[0].pushed_at)
-
-        var newNode = document.createElement('li')
-        var header = document.createElement('h1')
-        var description = document.createElement('time')
-
-        header.textContent = buildName
-        description.textContent = `
-          ${buildTime.getDate()}.${buildTime.getMonth() + 1}.${buildTime.getFullYear()}
-          ${buildTime.getHours()}:${buildTime.getMinutes()}
-        `
-
-        newNode.innerHTML = header.outerHTML + description.outerHTML
-        newNode.className = buildStatus
-
-        radiator.innerHTML = radiator.innerHTML + newNode.outerHTML
-      })
+      _.map(repository.branches, createBranch)
     }
 
     function createJobList(data) {

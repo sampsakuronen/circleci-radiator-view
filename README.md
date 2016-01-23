@@ -1,16 +1,16 @@
 # Radiator view for Circle CI
 
-Cirle CI lacks a nice radiator dashboard. I made this for the needs of our team. It simply displays all your projects and branches with status based coloring. 
+Cirle CI lacks a nice radiator view / dashboard. This project simply displays all your projects and branches with status based coloring.
 
-*All pull requests are welcome.*
+*Pull requests are welcome.*
 
 ## Setup
 
-Get your API token: https://circleci.com/account/api. Host `index.html` in some way (for example `python -m SimpleHTTPServer 8080`). 
+Get your API token from [your CirleCI account settings](https://circleci.com/account/api). Host `index.html` in some way (for example `python -m SimpleHTTPServer 8080`) or use the version hosted here: https://sampsakuronen.github.io/circleci-radiator-view/.
 
-You can also use the version hosted here: https://sampsakuronen.github.io/circleci-radiator-view/
+Please take into consideration that CirleCI API tokens have read and write access. When you use the get query parameter you transfer the token in plaintext to the server.
 
-Enter the token to the page or use a query parameter:
+Enter the token via a form on the page or send it as a query parameter:
 
     https://yourdomain.com/?token=835li2ixxxxxxxxxxxxxxxxxxxxxxxxxx1sd41
 

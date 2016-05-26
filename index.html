@@ -65,6 +65,11 @@
     display: none;
   }
 
+  #error {
+    display: none;
+    text-align: center;
+  }
+
   .api-token-input {
     display: none;
     align-items: center;
@@ -88,6 +93,7 @@
 
   <ul id="radiator" class="fill-height-or-more">
   </ul>
+  <h1 id="error"></h1>
 
   <script>
     var circleApiToken
@@ -96,6 +102,7 @@
     var radiator = document.getElementById('radiator')
     var apiToken = document.getElementById('apitoken')
     var apiTokenSubmit = document.getElementById('submit')
+    var error = document.getElementById('error')
 
     function createRepository(repository) {
       function createBranch(branch, branchName) {
@@ -137,6 +144,13 @@
       _.map(data, createRepository)
     }
 
+    function displayError(message) {
+      radiator.style.display = 'none'
+      radiator.innerHTML = ''
+      error.textContent = message
+      error.style.display = 'block'
+    }
+
     function getDataAndCreateRadiator() {
       var url = 'https://circleci.com/api/v1/projects?circle-token=' + circleApiToken
 
@@ -145,7 +159,9 @@
       request.setRequestHeader('Accept', 'application/json')
 
       request.onload = function() {
-        if (request.status >= 200 && request.status < 400) {
+        if (request.status === 401) {
+          displayError('Invalid API token (401 Unauthorized)')
+        } else if (request.status >= 200 && request.status < 400) {
           var data = JSON.parse(request.responseText)
           createJobList(data)
         }

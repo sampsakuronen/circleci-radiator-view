@@ -6,9 +6,12 @@ Cirle CI lacks a nice radiator view / dashboard. This project simply displays al
 
 ## Setup
 
-Get your API token from [your CirleCI account settings](https://circleci.com/account/api). Host `index.html` in some way (for example `python -m SimpleHTTPServer 8080`) or use the version hosted here: https://sampsakuronen.github.io/circleci-radiator-view/.
+1. Get your API token from [your CirleCI account settings](https://circleci.com/account/api)
+2. Open `index.html`
 
-Please take into consideration that CirleCI API tokens have read and write access. When you use the get query parameter you transfer the token in plaintext to the server.
+Hosted version is available here:: https://sampsakuronen.github.io/circleci-radiator-view/
+
+CirleCI API tokens have read and write access. When you use the query parameter, the token is visible in your browser history.
 
 Enter the token via a form on the page or send it as a query parameter:
 

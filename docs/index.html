@@ -94,11 +94,9 @@
   }
 
   @media (min-width: 410px) {
-    .split-1 > li { max-width: calc(100% / 1); }
-    .split-2 > li { max-width: calc(100% / 2); }
-    .split-3 > li { max-width: calc(100% / 3); }
-    .split-4 > li { max-width: calc(100% / 4); }
-    .split-5 > li { max-width: calc(100% / 5); }
+    .fill-height-or-more > li {
+      max-width: calc(50%);
+    }
   }
 </style>
 <body>
@@ -153,18 +151,7 @@
       _.map(repository.branches, createBranch)
     }
 
-    function calculateColumns(data) {
-      const builds = data.length
-      return Math.min(5, Math.ceil(builds / 5))
-    }
-
-    function setRadiatorColumns(columns) {
-      radiator.classList.remove([1, 2, 3, 4, 5].map(n => 'split-' + n))
-      radiator.classList.add('split-' + columns)
-    }
-
     function createJobList(data) {
-      setRadiatorColumns(calculateColumns(data))
       radiator.innerHTML = ''
       radiator.style.display = 'flex'
 

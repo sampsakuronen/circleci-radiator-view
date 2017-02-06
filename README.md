@@ -1,13 +1,14 @@
-# Radiator view for Circle CI
+# Radiator view for Circle CI and Travis CI
 
 Cirle CI lacks a nice radiator view / dashboard. This project simply displays all your projects and branches with status based coloring.
 
 *Pull requests are welcome.*
 
-## Setup
+## Setup for CircleCI
 
 1. Get your API token from [your CirleCI account settings](https://circleci.com/account/api)
-2. Open `index.html`
+2. Change mode to 'circle' in `index.html`
+3. Open `index.html`
 
 Hosted version is available here:: https://sampsakuronen.github.io/circleci-radiator-view/
 
@@ -18,6 +19,12 @@ Enter the token via a form on the page or send it as a query parameter:
     https://yourdomain.com/?token=835li2ixxxxxxxxxxxxxxxxxxxxxxxxxx1sd41
 
 ![Circle CI Radiator view](/readme_radiator.png?raw=true "Circle CI Radiator view")
+
+## Setup for Travis CI
+
+1. Get your API token from Travis
+2. Change mode to `travis` in `index.html`
+3. Open `index.html`
 
 ## Licence
 

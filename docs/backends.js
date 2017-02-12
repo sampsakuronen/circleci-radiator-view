@@ -47,11 +47,20 @@ function httpRequest(url, handler /*, headers */) {
       }
    })
    request.onload = function() {
-      if (request.status === 401 || request.status === 403) {
-         handler('Invalid API token (' + request.status + ' ' + request.responseText + ')')
-      } else if (request.status >= 200 && request.status < 400) {
-         var data = JSON.parse(request.responseText)
-         handler(undefined, data)
+      if (request.readyState > 0) {
+         if (request.status === 401 || request.status === 403) {
+            handler('Invalid API token (' + request.status + ' ' + request.responseText + ')')
+         } else if (request.status >= 200 && request.status < 400) {
+            try {
+               var data = JSON.parse(request.responseText)
+               handler(undefined, data)
+            } catch(exc) {
+               console.log('Error fetching URL', url, request.responseText)
+               handler(exc)
+            }
+         }
+      } else {
+         handler('Error getting URL ' + url)
       }
    }
    request.send()

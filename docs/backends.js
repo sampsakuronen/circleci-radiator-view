@@ -15,8 +15,10 @@ Build type:
 
 function buildBackend(settings, callback) {
    var backend = circleBackend
-   if (settings.mode == 'travis') {
+   if (settings.mode === 'travis') {
       backend = travisBackend
+   } else if (settings.mode === 'jenkins') {
+      backend = jenkinsBackend
    }
    var branchFilter = function(build) {
       return settings.branch ? build.branch === settings.branch : true
@@ -40,6 +42,9 @@ function httpRequest(url, handler /*, headers */) {
    request.open('GET', url, true)
    Object.keys(headers).forEach(function(headerName) {
       request.setRequestHeader(headerName, headers[headerName])
+      if (headerName === 'Authorization') {
+         request.withCredentials = true
+      }
    })
    request.onload = function() {
       if (request.status === 401 || request.status === 403) {
@@ -142,5 +147,63 @@ var circleBackend = function(settings, resultCallback) {
       resultCallback(undefined, builds)
    }, {
       Accept: 'application/json'
+   })
+}
+
+var jenkinsBackend = function(settings, resultCallback) {
+   var jenkinsRequest = function(url, cb) {
+      var handler = function(err, data) {
+         if (err) {
+            resultCallback(err)
+         } else {
+            cb(data)
+         }
+      }
+      var headers = {}
+      if (settings.token) {
+         headers.Authorization = 'Basic ' + window.btoa(settings.token)
+      }
+      httpRequest(url, handler, headers)
+   }
+
+   var findLastCommit = function(builds) {
+      var lastBuildWithCommits = builds.filter(function(b) {return b.changeSets.length > 0})[0]
+      if (! lastBuildWithCommits) {
+         return undefined
+      }
+      var lastCommits = lastBuildWithCommits.changeSets[0].items.map(function(item) {
+         return {
+            created: new Date(item.timestamp),
+            author: item.author.fullName,
+            hash: item.commitId
+         }
+      })
+      return lastCommits[0]
+   }
+
+   var url = settings.url + '/api/json?depth=4&tree=name,url,jobs[name,url,jobs[name,url,builds[result,building,changeSets[items[author[fullName],timestamp,commitId]],timestamp]]]'
+   jenkinsRequest(url, function(data) {
+      var builds = data.jobs.reduce(function(acc, project) {
+         return acc.concat(project.jobs.reduce(function(acc, job) {
+            var build = job.builds[0]
+            var result = 'failed'
+            if (build.building) {
+               result = 'started'
+            } else if (build.result === 'SUCCESS') {
+               result = 'success'
+            } else if (build.result === 'ABORTED') {
+               result = 'canceled'
+            }
+
+            return acc.concat({
+               repository: project.name,
+               branch: job.name,
+               started: new Date(build.timestamp),
+               state: result,
+               commit: findLastCommit(job.builds)
+               })
+         }, []))
+      }, [])
+      resultCallback(undefined, builds)
    })
 }

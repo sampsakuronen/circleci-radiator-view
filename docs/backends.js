@@ -36,6 +36,27 @@ function buildBackend(settings, callback) {
    }
 }
 
+function backendOptions() {
+   return {
+      'circle': {
+         name: 'Circle CI',
+         url: 'https://circleci.com/api/v1/projects',
+         token: undefined
+
+      },
+      'travis': {
+         name: 'Travis CI',
+         url: 'https://api.travis-ci.com/repos',
+         token: undefined
+      },
+      'jenkins': {
+         name: 'Jenkins CI',
+         url: undefined,
+         token: undefined
+      }
+   }
+}
+
 function httpRequest(url, handler /*, headers */) {
    var request = new XMLHttpRequest()
    var headers = arguments[2] || {}
@@ -103,20 +124,14 @@ var travisBackend = function(settings, resultCallback) {
       }
    }
 
-   var parseRepos = function(cb) {
-      travisRequest('https://api.travis-ci.com/repos', function(data) {
-         cb(data.repos.map(function(repo) {return {id: repo.id, name: repo.slug}}))
-      })
-   }
-
    var parseBuilds = function(repos) {
       var responses = []
       repos.forEach(function(r) {
-         travisRequest('https://api.travis-ci.com/repos/' + r.name + '/builds', function(data) {
+         travisRequest(settings.url + '/' + r.name + '/builds', function(data) {
             var reponame = r.name.split('/')[1]
             var builds = data.builds.map(translateBuild(reponame, data.commits))
             responses.push(builds)
-            if (responses.length == repos.length) {
+            if (responses.length === repos.length) {
                var result = responses.reduce(function(acc, item) {return acc.concat(item)}, [])
                resultCallback(undefined, result)
             }
@@ -124,11 +139,13 @@ var travisBackend = function(settings, resultCallback) {
       })
    }
 
-   parseRepos(parseBuilds)
+   travisRequest(settings.url, function(data) {
+      parseBuilds(data.repos.map(function(repo) {return {id: repo.id, name: repo.slug}}))
+   })
 }
 
 var circleBackend = function(settings, resultCallback) {
-   var url = 'https://circleci.com/api/v1/projects?circle-token=' + settings.token
+   var url = settings.url + '?circle-token=' + settings.token
 
    httpRequest(url, function(err, data) {
       if (err) {

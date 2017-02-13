@@ -158,14 +158,20 @@
       var listItem = document.createElement('li')
       var header = document.createElement('h1')
       var description = document.createElement('time')
+      var author = document.createElement('div')
+      var authorName = ''
+      if (build.commit && build.commit.author) {
+           authorName = build.commit.author
+      }
 
       header.textContent = name
       description.textContent = `
       ${time.getDate()}.${time.getMonth() + 1}.${time.getFullYear()}
       ${time.getHours()}:${time.getMinutes()}
       `
+      author.innerHTML = `${authorName}`
 
-      listItem.innerHTML = header.outerHTML + description.outerHTML
+      listItem.innerHTML = header.outerHTML + description.outerHTML + author.outerHTML
       listItem.className = build.state
 
       radiator.innerHTML = radiator.innerHTML + listItem.outerHTML

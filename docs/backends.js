@@ -63,25 +63,20 @@ function httpRequest(url, handler /*, headers */) {
    request.open('GET', url, true)
    Object.keys(headers).forEach(function(headerName) {
       request.setRequestHeader(headerName, headers[headerName])
-      if (headerName === 'Authorization') {
-         request.withCredentials = true
-      }
    })
    request.onload = function() {
-      if (request.readyState > 0) {
-         if (request.status === 401 || request.status === 403) {
-            handler('Invalid API token (' + request.status + ' ' + request.responseText + ')')
-         } else if (request.status >= 200 && request.status < 400) {
-            try {
-               var data = JSON.parse(request.responseText)
-               handler(undefined, data)
-            } catch(exc) {
-               console.log('Error fetching URL', url, request.responseText)
-               handler(exc)
-            }
+      if (request.status === 401 || request.status === 403) {
+         handler('Invalid API token (' + request.status + ' ' + request.responseText + ')')
+      } else if (request.status >= 200 && request.status < 400) {
+         try {
+            var data = JSON.parse(request.responseText)
+            handler(undefined, data)
+         } catch(exc) {
+            console.log('Error fetching URL', url, request.responseText)
+            handler(exc)
          }
       } else {
-         handler('Error getting URL ' + url)
+         handler('Error getting URL ' + url + ':' + request.status)
       }
    }
    request.send()

@@ -183,7 +183,7 @@
    }
 
    function setRadiatorColumns(columns) {
-      radiator.classList.remove([1, 2, 3, 4, 5, 6].map(n => 'split-' + n))
+      radiator.classList.remove.apply(radiator.classList, [1, 2, 3, 4, 5, 6].map(n => 'split-' + n))
       radiator.classList.add('split-' + columns)
    }
 

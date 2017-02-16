@@ -167,9 +167,9 @@
       header.textContent = name
       description.textContent = `
       ${time.getDate()}.${time.getMonth() + 1}.${time.getFullYear()}
-      ${time.getHours()}:${time.getMinutes()}
+      ${time.toString().replace(/.*(\d{2}:\d{2}):(\d{2}).*/, '$1')}
       `
-      author.innerHTML = `${authorName}`
+      author.innerHTML = authorName
 
       listItem.innerHTML = header.outerHTML + description.outerHTML + author.outerHTML
       listItem.className = build.state

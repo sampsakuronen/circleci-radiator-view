@@ -206,7 +206,7 @@ var jenkinsBackend = function(settings, resultCallback) {
    jenkinsRequest(url, function(data) {
       var builds = data.jobs.reduce(function(acc, project) {
          return acc.concat(project.jobs.reduce(function(acc, job) {
-            var build = job.builds[0]
+            var build = job.builds[0] || {}
             var result = 'failed'
             if (build.building) {
                result = 'started'

@@ -188,7 +188,12 @@ var jenkinsBackend = function(settings, resultCallback) {
    }
 
    var findLastCommit = function(builds) {
-      var lastBuildWithCommits = builds.filter(function(b) {return b.changeSets.length > 0})[0]
+      if (! builds) {
+         return undefined
+      }
+      var lastBuildWithCommits = builds.filter(function(b) {
+         return b.changeSets && b.changeSets.length > 0
+      })[0]
       if (! lastBuildWithCommits) {
          return undefined
       }
@@ -199,10 +204,31 @@ var jenkinsBackend = function(settings, resultCallback) {
             hash: item.commitId
          }
       })
-      return lastCommits[0]
+      return lastCommits[lastCommits.length - 1]
    }
 
-   var url = settings.url + '/api/json?depth=4&tree=name,url,jobs[name,url,jobs[name,url,builds[result,building,changeSets[items[author[fullName],timestamp,commitId]],timestamp]]]'
+   var findBuildReason = function(builds) {
+      if (! builds) {
+         return undefined
+      }
+      var lastBuildWithActions = builds.filter(function(b) {
+         return b.actions && b.actions.length > 0
+      })[0]
+      if (! lastBuildWithActions) {
+         return undefined
+      }
+      var reason = lastBuildWithActions.actions.filter(function(a) {
+         return a._class == 'hudson.model.CauseAction'
+      }).reduce(function(acc, a) {
+         return acc.concat(a.causes.map(function(c) {return c.shortDescription}))
+      }, []).join(';')
+
+      return {
+         author: reason,
+      }
+   }
+
+   var url = settings.url + '/api/json?depth=4&tree=name,url,jobs[name,url,jobs[name,url,builds[result,building,actions[causes[shortDescription]],changeSets[items[author[fullName],timestamp,commitId]],timestamp]]]'
    jenkinsRequest(url, function(data) {
       var builds = data.jobs.reduce(function(acc, project) {
          return acc.concat(project.jobs.reduce(function(acc, job) {
@@ -221,7 +247,7 @@ var jenkinsBackend = function(settings, resultCallback) {
                branch: job.name,
                started: new Date(build.timestamp),
                state: result,
-               commit: findLastCommit(job.builds)
+               commit: findLastCommit(job.builds) || findBuildReason(job.builds)
                })
          }, []))
       }, [])

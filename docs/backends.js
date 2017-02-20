@@ -127,7 +127,9 @@ var travisBackend = function(settings, resultCallback) {
             var builds = data.builds.map(translateBuild(reponame, data.commits))
             responses.push(builds)
             if (responses.length === repos.length) {
-               var result = responses.reduce(function(acc, item) {return acc.concat(item)}, [])
+               var result = responses.reduce(function(acc, item) {
+                  return item.length > 0 ? acc.concat(item) : acc
+               }, [])
                resultCallback(undefined, result)
             }
          })

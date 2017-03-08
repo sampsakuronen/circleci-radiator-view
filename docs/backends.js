@@ -230,7 +230,23 @@ var jenkinsBackend = function(settings, resultCallback) {
       }
    }
 
-   var url = settings.url + '/api/json?depth=4&tree=name,url,jobs[name,url,jobs[name,url,builds[result,building,actions[causes[shortDescription]],changeSets[items[author[fullName],timestamp,commitId]],timestamp]]]'
+   var findResponsible = function(job) {
+      if (! job.actions) {
+         return undefined
+      }
+      var contributorActions = job.actions.filter(function(action) {return action.contributor || action.contributorDisplayName})
+      var contributor = contributorActions[0]
+      if (! contributor) {
+         return undefined
+      }
+      return {
+         created: new Date(job.timestamp),
+         author: contributor.contributorDisplayName || contributor.contributor
+      }
+
+   }
+
+   var url = settings.url + '/api/json?depth=4&tree=name,url,jobs[name,url,jobs[name,url,actions[contributor,contributorDisplayName,contributorEmail],builds[result,building,actions[causes[shortDescription]],changeSets[items[author[fullName],timestamp,commitId]],timestamp]]]'
    jenkinsRequest(url, function(data) {
       var builds = data.jobs.reduce(function(acc, project) {
          return acc.concat(project.jobs.reduce(function(acc, job) {
@@ -249,7 +265,7 @@ var jenkinsBackend = function(settings, resultCallback) {
                branch: job.name,
                started: new Date(build.timestamp),
                state: result,
-               commit: findLastCommit(job.builds) || findBuildReason(job.builds)
+               commit: findLastCommit(job.builds) || findResponsible(job) || findBuildReason(job.builds)
                })
          }, []))
       }, [])

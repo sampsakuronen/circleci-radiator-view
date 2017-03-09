@@ -246,18 +246,21 @@ var jenkinsBackend = function(settings, resultCallback) {
 
    }
 
-   var url = settings.url + '/api/json?depth=4&tree=name,url,jobs[name,url,jobs[name,url,actions[contributor,contributorDisplayName,contributorEmail],builds[result,building,actions[causes[shortDescription]],changeSets[items[author[fullName],timestamp,commitId]],timestamp]]]'
+   var url = settings.url + '/api/json?depth=4&tree=name,url,jobs[name,url,jobs[name,url,actions[contributor,contributorDisplayName,contributorEmail],buildable,builds[result,building,actions[causes[shortDescription]],changeSets[items[author[fullName],timestamp,commitId]],timestamp]]]'
    jenkinsRequest(url, function(data) {
       var builds = data.jobs.reduce(function(acc, project) {
          return acc.concat(project.jobs.reduce(function(acc, job) {
+            if (!job.buildable) {
+               return acc
+            }
             var build = job.builds[0] || {}
             var result = 'failed'
             if (build.building) {
                result = 'started'
-            } else if (build.result === 'SUCCESS') {
-               result = 'success'
             } else if (build.result === 'ABORTED') {
                result = 'canceled'
+            } else if (build.result === 'SUCCESS') {
+               result = 'success'
             }
 
             return acc.concat({

@@ -21,7 +21,7 @@ function buildBackend(settings, callback) {
       backend = jenkinsBackend
    }
    var branchFilter = function(build) {
-      return settings.branch ? build.branch === settings.branch : true
+      return settings.branch ? build.branch.match(settings.branch) : true
    }
    return function() {
       backend(settings, function(err, data) {

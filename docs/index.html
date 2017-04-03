@@ -1,10 +1,11 @@
 <!doctype html>
 <head>
-  <title>Circle CI radiator view</title>
+  <title>CI radiator view</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.0.0/lodash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.min.js"></script>
+  <script src="backends.js"></script>
 </head>
 <style>
   html, body {
@@ -32,19 +33,19 @@
   li:first-child {
     border-top: 0;
   }
-  .success, .fixed {
+  .success, .fixed, .passed {
     background-color: #42c88a;
   }
-  .failed, .infrastructure_fail, .timedout  {
+  .failed, .infrastructure_fail, .timedout, .errored  {
     background-color: #ed5c5c;
   }
-  .not_running, .queued, .scheduled {
+  .not_running, .queued, .scheduled, .canceled {
     background-color: #ab7fd1;
   }
   @keyframes pulse {
     50% { background-color: rgba(102, 211, 228, 0.6) }
   }
-  .running {
+  .running, .started {
     animation: pulse 5s ease-in-out infinite;
     background-color: #66d3e4;
     background-color: rgba(102, 211, 228, 1.0);
@@ -78,19 +79,48 @@
     text-align: center;
   }
 
-  .api-token-input {
+  .settings-form {
     display: none;
     align-items: center;
-    justify-content: center;
+    justify-content: left;
     height: inherit;
-    background: #e4e4e4;
+    margin: 0% 10% 0% 10%;
+
   }
 
-  input[type="password"], input[type="submit"] {
-    max-width: 50%;
-    max-height: 25%;
-    min-width: 320px;
-    min-height: 60px;
+  .settings-form input[type=text],
+  .settings-form input[type=password] {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+  }
+
+  .settings-form input[type=submit] {
+    transition-duration: 0.1s;
+    background-color: white;
+    color: black;
+    border: 2px solid #4CAF50;
+    border-radius: 4px;
+    width: 100%;
+    margin-top: 40px;
+    padding: 12px 28px;
+  }
+
+  .settings-form input[type=submit]:hover,
+  .settings-form input[type=submit]:focus {
+    background-color: #4CAF50;
+    color: white;
+    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
+  }
+
+  .settings-form label {
+    display: block;
+  }
+
+  .settings-form input[type=text]:focus,
+  .settings-form input[type=password]:focus {
+    border: 3px solid #555;
   }
 
   @media (min-width: 410px) {
@@ -102,9 +132,12 @@
   }
 </style>
 <body>
-  <div class="api-token-input">
-    <input type="password" id="apitoken" placeholder="CircleCI API token" autofocus></input>
-    <input type="submit" value="Begin" id="submit"></input>
+    <div class="settings-form">
+        <h1>Configure API endpoint</h1>
+        <select id="mode"></select>
+        <input type="text" id="serverurl" placeholder="API base URL" autofocus></input>
+        <input type="password" id="apitoken" placeholder="API token"></input>
+        <input type="submit" value="Begin" id="submit"></input>
   </div>
 
   <ul id="radiator" class="fill-height-or-more">
@@ -112,109 +145,132 @@
   <h1 id="error"></h1>
 
   <script>
-    var circleApiToken
-    var updateInterval = 10 * 1000
+   var updateInterval = 20 * 1000
+   var settings
 
-    var radiator = document.getElementById('radiator')
-    var apiToken = document.getElementById('apitoken')
-    var apiTokenSubmit = document.getElementById('submit')
-    var error = document.getElementById('error')
+   var radiator = document.getElementById('radiator')
+   var error = document.getElementById('error')
 
-    function createRepository(repository) {
-      function createBranch(branch, branchName) {
-        function createListItem() {
-          var buildIsRunning = branch.running_builds.length != 0
-          var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0]
-          var status = buildIsRunning ? build.status : build.outcome
-          var name = `${project}: ${decodeURIComponent(branchName)}`
-          var time = new Date(build.pushed_at)
+   function createJob(build) {
+      var name = `${build.repository}: ${decodeURIComponent(build.branch)}`
+      var time = new Date(build.started)
 
-          var newNode = document.createElement('li')
-          var header = document.createElement('h1')
-          var description = document.createElement('time')
-
-          header.textContent = name
-          description.textContent = `
-            ${time.getDate()}.${time.getMonth() + 1}.${time.getFullYear()}
-            ${time.getHours()}:${time.getMinutes()}
-          `
-
-          newNode.innerHTML = header.outerHTML + description.outerHTML
-          newNode.className = status
-
-          return newNode
-        }
-
-        var jobListItem = createListItem()
-        radiator.innerHTML = radiator.innerHTML + jobListItem.outerHTML
+      var listItem = document.createElement('li')
+      var header = document.createElement('h1')
+      var description = document.createElement('time')
+      var author = document.createElement('div')
+      var authorName = ''
+      if (build.commit && build.commit.author) {
+           authorName = build.commit.author
       }
 
-      var project = repository.reponame
-      _.map(repository.branches, createBranch)
-    }
+      header.textContent = name
+      description.textContent = `
+      ${time.getDate()}.${time.getMonth() + 1}.${time.getFullYear()}
+      ${time.toString().replace(/.*(\d{2}:\d{2}):(\d{2}).*/, '$1')}
+      `
+      author.innerHTML = authorName
 
-    function calculateColumns(data) {
-      const builds = _.sumBy(data, repo => Object.keys(repo.branches).length)
+      listItem.innerHTML = header.outerHTML + description.outerHTML + author.outerHTML
+      listItem.className = build.state
+
+      radiator.innerHTML = radiator.innerHTML + listItem.outerHTML
+   }
+
+   function calculateColumns(data) {
+      var builds = data.length
       return Math.min(5, Math.ceil(builds / 5))
-    }
+   }
 
-    function setRadiatorColumns(columns) {
-      radiator.classList.remove([1, 2, 3, 4, 5].map(n => 'split-' + n))
+   function setRadiatorColumns(columns) {
+      radiator.classList.remove.apply(radiator.classList, [1, 2, 3, 4, 5, 6].map(n => 'split-' + n))
       radiator.classList.add('split-' + columns)
-    }
+   }
 
-    function createJobList(data) {
-      setRadiatorColumns(calculateColumns(data))
+   function createJobList(err, builds) {
+      if (err) {
+         return displayError(err)
+      }
+      setRadiatorColumns(calculateColumns(builds))
       radiator.innerHTML = ''
       radiator.style.display = 'flex'
 
-      _.map(data, createRepository)
-    }
+      _.map(builds, createJob)
+   }
 
-    function displayError(message) {
+   function displayError(message) {
       radiator.style.display = 'none'
       radiator.innerHTML = ''
       error.textContent = message
       error.style.display = 'block'
-    }
+      console.log(message)
+   }
 
-    function getDataAndCreateRadiator() {
-      var url = 'https://circleci.com/api/v1/projects?circle-token=' + circleApiToken
-
-      var request = new XMLHttpRequest()
-      request.open('GET', url, true)
-      request.setRequestHeader('Accept', 'application/json')
-
-      request.onload = function() {
-        if (request.status === 401) {
-          displayError('Invalid API token (401 Unauthorized)')
-        } else if (request.status >= 200 && request.status < 400) {
-          var data = JSON.parse(request.responseText)
-          createJobList(data)
-        }
-      }
-
-      request.send()
-    }
-
-    function start(apiToken) {
-      circleApiToken = apiToken
-      setInterval(getDataAndCreateRadiator, updateInterval)
-      getDataAndCreateRadiator()
+   function start(settings) {
+      var backend = buildBackend(settings, createJobList) || displayError('Invalid backend ' + settings.mode)
+      setInterval(backend, updateInterval)
+      backend()
       setInterval(function(){location.reload(true)}, 24 * 60 * 60 * 1000)
-    }
+   }
 
-    var query = window.location.search
-    if (query.substr(1, 6) === 'token=') {
-      start(query.substr(7, query.length))
-    } else {
-      var tokenInput = document.querySelector('.api-token-input')
-      tokenInput.style.display = 'flex'
+   function extendWithDefaults(settings) {
+      var opts = backendOptions()
+      var mode = settings.mode
+      if (!opts[mode]) {
+         mode = _.keys(opts)[0]
+         settings.mode = mode
+      }
+      var opt = opts[settings.mode]
+      settings.url = opt.url || settings.url
+      settings.token = opt.token || settings.token
+      return settings
+   }
 
-      apiTokenSubmit.addEventListener('click', function() {
-        tokenInput.style.display = 'none'
-        start(apiToken.value)
+   var query = window.location.search.substring(1)
+   var settings = _.chain(query.split('&')).map(function(params) {
+      var p = params.split('=')
+      return [p[0], decodeURIComponent(p[1])]
+   }).fromPairs().value()
+   settings = extendWithDefaults(settings)
+
+   if (settings && settings.mode && settings.url && settings.token) {
+      start(settings)
+   } else {
+      var settingsForm = document.querySelector('.settings-form')
+      var modeSelect = document.getElementById('mode')
+      var serverUrlInput = document.getElementById('serverurl')
+      var apiTokenInput = document.getElementById('apitoken')
+      var submit = document.getElementById('submit')
+      settingsForm.style.display = 'block'
+
+      var defaults = backendOptions()
+      Object.keys(defaults).forEach(function(option) {
+         var o = document.createElement("option")
+         o.text = defaults[option].name
+         o.value = option
+         if (settings.mode == option) {
+            o.selected = true
+         }
+         modeSelect.add(o)
       })
-    }
+      var setUISelections = function(mode) {
+         settings.mode = mode || settings.mode
+         settings = extendWithDefaults(settings)
+         serverUrlInput.value = settings.url
+         apiTokenInput.value = settings.token
+      }
+      setUISelections(settings.mode || defaults[_.keys(defaults)[0]].mode)
+
+      modeSelect.addEventListener('change', function(e) {
+         settings.mode = modeSelect.options[modeSelect.selectedIndex].value
+         setUISelections()
+      })
+      submit.addEventListener('click', function() {
+         settingsForm.style.display = 'none'
+         settings.url = serverUrlInput.value
+         settings.token = apiTokenInput.value
+         start(settings)
+      })
+   }
   </script>
 </body>

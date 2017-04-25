@@ -194,6 +194,7 @@
       setRadiatorColumns(calculateColumns(builds))
       radiator.innerHTML = ''
       radiator.style.display = 'flex'
+      error.style.display = 'none'
 
       _.map(builds, createJob)
    }

@@ -303,7 +303,7 @@ var cloudWatchBackend = function(settings, resultCallback) {
          return {
             repository: alarm.AlarmName,
             started: alarm.StateUpdatedTimestamp,
-            state: alarm.StateValue === 'OK' ? 'success' : 'failed'
+            state: result
          }
       })
       resultCallback(undefined, builds)

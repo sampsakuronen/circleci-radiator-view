@@ -131,6 +131,9 @@
     .split-5 > li { max-width: calc(100% / 5); }
     .split-6 > li { max-width: calc(100% / 6); }
     .split-7 > li { max-width: calc(100% / 7); }
+    .split-8 > li { max-width: calc(100% / 8); }
+    .split-9 > li { max-width: calc(100% / 9); }
+    .split-10 > li { max-width: calc(100% / 10); }
   }
 </style>
 <body>
@@ -188,7 +191,7 @@
     }
 
     function setRadiatorColumns(columns) {
-      radiator.classList.remove.apply(radiator.classList, [1, 2, 3, 4, 5, 6, 7].map(n => 'split-' + n))
+      radiator.classList.remove.apply(radiator.classList, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => 'split-' + n))
       radiator.classList.add('split-' + columns)
     }
 

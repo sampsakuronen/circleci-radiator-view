@@ -127,17 +127,21 @@ var travisBackend = function(settings, resultCallback) {
    var parseBuilds = function(repos) {
       var responses = []
       repos.forEach(function(r) {
-         travisRequest(settings.url + '/' + r.name + '/builds', function(data) {
-            var reponame = r.name.split('/')[1]
-            var builds = data.builds.map(translateBuild(reponame, data.commits))
-            responses.push(builds)
-            if (responses.length === repos.length) {
-               var result = responses.reduce(function(acc, item) {
-                  return item.length > 0 ? acc.concat(item) : acc
-               }, [])
-               resultCallback(undefined, result)
-            }
-         })
+         // NOTE: Temporary hack to only get kuha-tnx repositories
+         var organizationName = r.name.split('/')[0];
+         if (organizationName === "kuha-tnx") {
+            travisRequest(settings.url + '/' + r.name + '/builds', function(data) {
+               var reponame = r.name.split('/')[1]
+               var builds = data.builds.map(translateBuild(reponame, data.commits))
+               responses.push(builds)
+               if (responses.length === repos.length) {
+                  var result = responses.reduce(function(acc, item) {
+                     return item.length > 0 ? acc.concat(item) : acc
+                  }, [])
+                  resultCallback(undefined, result)
+               }
+            })
+         }
       })
    }
 

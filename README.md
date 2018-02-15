@@ -1,10 +1,13 @@
-# Simple build status radiator view
+# Simple build status and alarm radiator view
 
 Many continuous integration services lack a nice and simple radiator view / dashboard.
 This project simply displays all your projects and selected branches with status based coloring.
 
-Supported backends are [CircleCI](https://circleci.com/), [Travis CI](https://travis-ci.org/) and
-[Jenkins](https://jenkins.io).
+Production (or any other) environment monitoring is another good practice. Radiate your alarms as well as builds!
+
+Supported CI backends are [CircleCI](https://circleci.com/), [Travis CI](https://travis-ci.org/), [Jenkins](https://jenkins.io).
+
+For alarm monitoring, [AWS CloudWatch Alarms](https://aws.amazon.com) is supported.
 
 ![Circle CI Radiator view](/readme_radiator.png?raw=true "Circle CI Radiator view")
 
@@ -15,17 +18,27 @@ Supported backends are [CircleCI](https://circleci.com/), [Travis CI](https://tr
 
 1. Get your API token from [your CirleCI account settings](https://circleci.com/account/api)
 2. Open `index.html`
-
+3. Add your token to the token field
 
 ## Setup for Travis CI
 
 1. Get your API token from (https://travis-ci.org/profile/<your_profile>)
 2. Open `index.html?mode=travis`
+3. Add your token to the token field
 
 ## Setup for Jenkins
 
 1. Create a user and a token for the user in your job settings
-2. Open `index.html?mode=jenkins` and add the job end point URL (eg. http://host/jenkins/job/My%20Job)
+2. Open `index.html?mode=jenkins` and
+  * Add the job end point URL (eg. http://host/jenkins/job/My%20Job)
+  * Set the user name and the generated token in the token field, separated by a colon, ie. *userid:thetokenhash*.
+
+## Setup for AWS CloudWatch
+
+1. Create a monitor user with read-only access in IAM
+2. Open `index.html?mode=cloudwatch` and
+  * Modify the URL to contain the proper region (defaults to eu-west-1)
+  * Set the access key and secret key as token, separated by a colon, ie. *ACCESSKEY:longsecretkey*.
 
 ## Query parameters
 
@@ -41,6 +54,8 @@ any required parameters are missing.
    Select the branch to show (from all repos found in the API end point).
    Useful if your repos contain only a single branch (master, release etc) that should be visible
    in the radiator view.
+
+   The branch is understood as a regular expression, so you can say something like _master|PR.*_
 
 - token
 
@@ -64,12 +79,12 @@ Example where the token is entered in an input field:
 
 Jenkins example:
 
-   https://yourdomain.com/?mode=jenkins&token=jenkins_token&url=http://localhost:8080/jenkins/job/My%20Job
+   https://yourdomain.com/?mode=jenkins&token=user:jenkins_token&branch=master|PR.*&url=http://localhost:8080/jenkins/job/My%20Job
 
 
 ## Hosted version
 
-Available here: https://sampsakuronen.github.io/circleci-radiator-view/
+Available here: https://sampsakuronen.github.io/circleci-radiator-view/ or here: https://langma.github.io/radiator-view/
 
 
 ## Licence

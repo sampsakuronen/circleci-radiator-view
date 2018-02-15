@@ -19,6 +19,8 @@ function buildBackend(settings, callback) {
       backend = travisBackend
    } else if (settings.mode === 'jenkins') {
       backend = jenkinsBackend
+   } else if (settings.mode === 'cloudwatch') {
+      backend = cloudWatchBackend
    }
    var branchFilter = function(build) {
       return settings.branch ? build.branch.match(settings.branch) : true
@@ -42,7 +44,6 @@ function backendOptions() {
          name: 'Circle CI',
          url: 'https://circleci.com/api/v1/projects',
          token: undefined
-
       },
       'travis': {
          name: 'Travis CI',
@@ -52,6 +53,11 @@ function backendOptions() {
       'jenkins': {
          name: 'Jenkins CI',
          url: undefined,
+         token: undefined
+      },
+      'cloudwatch': {
+         name: 'AWS CloudWatch',
+         url: 'https://monitoring.eu-west-1.amazonaws.com/',
          token: undefined
       }
    }
@@ -86,10 +92,9 @@ var travisBackend = function(settings, resultCallback) {
    var travisRequest = function(url, cb) {
       var handler = function(err, data) {
          if (err) {
-            resultCallback(err)
-         } else {
-            cb(data)
+            return resultCallback(err)
          }
+         cb(data)
       }
       httpRequest(url, handler, {
          Accept: 'application/vnd.travis-ci.2+json',
@@ -122,17 +127,21 @@ var travisBackend = function(settings, resultCallback) {
    var parseBuilds = function(repos) {
       var responses = []
       repos.forEach(function(r) {
-         travisRequest(settings.url + '/' + r.name + '/builds', function(data) {
-            var reponame = r.name.split('/')[1]
-            var builds = data.builds.map(translateBuild(reponame, data.commits))
-            responses.push(builds)
-            if (responses.length === repos.length) {
-               var result = responses.reduce(function(acc, item) {
-                  return item.length > 0 ? acc.concat(item) : acc
-               }, [])
-               resultCallback(undefined, result)
-            }
-         })
+         // NOTE: Temporary hack to only get kuha-tnx repositories
+         var organizationName = r.name.split('/')[0];
+         if (organizationName === "kuha-tnx") {
+           travisRequest(settings.url + '/' + r.name + '/builds', function(data) {
+              var reponame = r.name.split('/')[1]
+              var builds = data.builds.map(translateBuild(reponame, data.commits))
+              responses.push(builds)
+              if (responses.length === repos.length) {
+                 var result = responses.reduce(function(acc, item) {
+                    return item.length > 0 ? acc.concat(item) : acc
+                 }, [])
+                 resultCallback(undefined, result)
+              }
+           })
+         }
       })
    }
 
@@ -177,10 +186,9 @@ var jenkinsBackend = function(settings, resultCallback) {
    var jenkinsRequest = function(url, cb) {
       var handler = function(err, data) {
          if (err) {
-            resultCallback(err)
-         } else {
-            cb(data)
+            return resultCallback(err)
          }
+         cb(data)
       }
       var headers = {}
       if (settings.token) {
@@ -272,6 +280,36 @@ var jenkinsBackend = function(settings, resultCallback) {
                })
          }, []))
       }, [])
+      resultCallback(undefined, builds)
+   })
+}
+
+var cloudWatchBackend = function(settings, resultCallback) {
+   var creds = settings.token.split(':')
+   var region = settings.url.split('.')[1]
+   var cloudwatch = new AWS.CloudWatch({
+      accessKeyId: creds[0],
+      secretAccessKey: creds[1],
+      region: region,
+   })
+   var params = {}
+   cloudwatch.describeAlarms(params, function(err, data) {
+      if (err) {
+         return resultCallback(err)
+      }
+      var builds = data.MetricAlarms.map(function(alarm) {
+         var result = 'canceled'
+         if (alarm.StateValue === 'OK') {
+            result = 'success'
+         } else if (alarm.StateValue === 'ALARM') {
+            result = 'failed'
+         }
+         return {
+            repository: alarm.AlarmName,
+            started: alarm.StateUpdatedTimestamp,
+            state: result
+         }
+      })
       resultCallback(undefined, builds)
    })
 }

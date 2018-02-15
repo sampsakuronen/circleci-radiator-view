@@ -128,7 +128,7 @@ var travisBackend = function(settings, resultCallback) {
       var responses = []
       repos.forEach(function(r) {
          // NOTE: Temporary hack to only get kuha-tnx repositories
-         var oranizationName = r.name.split('/')[0];
+         var organizationName = r.name.split('/')[0];
          if (organizationName === "kuha-tnx") {
            travisRequest(settings.url + '/' + r.name + '/builds', function(data) {
               var reponame = r.name.split('/')[1]

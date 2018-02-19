@@ -19,6 +19,8 @@ function buildBackend(settings, callback) {
       backend = travisBackend
    } else if (settings.mode === 'jenkins') {
       backend = jenkinsBackend
+   } else if (settings.mode === 'cloudwatch') {
+      backend = cloudWatchBackend
    }
    var branchFilter = function(build) {
       return settings.branch ? build.branch.match(settings.branch) : true
@@ -41,17 +43,26 @@ function backendOptions() {
       'circle': {
          name: 'Circle CI',
          url: 'https://circleci.com/api/v1/projects',
+         supportsOwnernameFiltering: false,
          token: undefined
-
       },
       'travis': {
          name: 'Travis CI',
          url: 'https://api.travis-ci.com/repos',
+         supportsOwnernameFiltering: true,
+         ownername: '',
          token: undefined
       },
       'jenkins': {
          name: 'Jenkins CI',
          url: undefined,
+         supportsOwnernameFiltering: false,
+         token: undefined
+      },
+      'cloudwatch': {
+         name: 'AWS CloudWatch',
+         url: 'https://monitoring.eu-west-1.amazonaws.com/',
+         supportsOwnernameFiltering: false,
          token: undefined
       }
    }
@@ -86,10 +97,9 @@ var travisBackend = function(settings, resultCallback) {
    var travisRequest = function(url, cb) {
       var handler = function(err, data) {
          if (err) {
-            resultCallback(err)
-         } else {
-            cb(data)
+            return resultCallback(err)
          }
+         cb(data)
       }
       httpRequest(url, handler, {
          Accept: 'application/vnd.travis-ci.2+json',
@@ -136,7 +146,8 @@ var travisBackend = function(settings, resultCallback) {
       })
    }
 
-   travisRequest(settings.url, function(data) {
+   var reposUrl = settings.url + (settings.ownername ? '?owner_name=' + settings.ownername : '');
+   travisRequest(reposUrl, function(data) {
       parseBuilds(data.repos.map(function(repo) {return {id: repo.id, name: repo.slug}}))
    })
 }
@@ -177,10 +188,9 @@ var jenkinsBackend = function(settings, resultCallback) {
    var jenkinsRequest = function(url, cb) {
       var handler = function(err, data) {
          if (err) {
-            resultCallback(err)
-         } else {
-            cb(data)
+            return resultCallback(err)
          }
+         cb(data)
       }
       var headers = {}
       if (settings.token) {
@@ -272,6 +282,36 @@ var jenkinsBackend = function(settings, resultCallback) {
                })
          }, []))
       }, [])
+      resultCallback(undefined, builds)
+   })
+}
+
+var cloudWatchBackend = function(settings, resultCallback) {
+   var creds = settings.token.split(':')
+   var region = settings.url.split('.')[1]
+   var cloudwatch = new AWS.CloudWatch({
+      accessKeyId: creds[0],
+      secretAccessKey: creds[1],
+      region: region,
+   })
+   var params = {}
+   cloudwatch.describeAlarms(params, function(err, data) {
+      if (err) {
+         return resultCallback(err)
+      }
+      var builds = data.MetricAlarms.map(function(alarm) {
+         var result = 'canceled'
+         if (alarm.StateValue === 'OK') {
+            result = 'success'
+         } else if (alarm.StateValue === 'ALARM') {
+            result = 'failed'
+         }
+         return {
+            repository: alarm.AlarmName,
+            started: alarm.StateUpdatedTimestamp,
+            state: result
+         }
+      })
       resultCallback(undefined, builds)
    })
 }

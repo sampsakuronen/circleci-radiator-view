@@ -80,6 +80,10 @@
     text-align: center;
   }
 
+  #ownername {
+    display: none;
+  }
+
   .settings-form {
     display: none;
     align-items: center;
@@ -141,6 +145,7 @@
     <h1>Configure API endpoint</h1>
     <select id="mode"></select>
     <input type="text" id="serverurl" placeholder="API base URL" autofocus></input>
+    <input type="text" id="ownername" placeholder="Owner name filter"></input>
     <input type="password" id="apitoken" placeholder="API token"></input>
     <input type="submit" value="Begin" id="submit"></input>
   </div>
@@ -232,6 +237,8 @@
       var opt = opts[settings.mode]
       settings.url = opt.url || settings.url
       settings.token = opt.token || settings.token
+      settings.supportsOwnernameFiltering = opt.supportsOwnernameFiltering;
+      settings.ownername = opt.ownername || settings.ownername
       return settings
     }
 
@@ -249,6 +256,7 @@
       var modeSelect = document.getElementById('mode')
       var serverUrlInput = document.getElementById('serverurl')
       var apiTokenInput = document.getElementById('apitoken')
+      var ownernameInput = document.getElementById('ownername')
       var submit = document.getElementById('submit')
       settingsForm.style.display = 'block'
 
@@ -267,6 +275,8 @@
         settings = extendWithDefaults(settings)
         serverUrlInput.value = settings.url
         apiTokenInput.value = settings.token
+        ownernameInput.value = settings.ownername
+        ownernameInput.style.display = settings.supportsOwnernameFiltering ? 'block' : 'none'
       }
       setUISelections(settings.mode || defaults[_.keys(defaults)[0]].mode)
 
@@ -278,6 +288,7 @@
         settingsForm.style.display = 'none'
         settings.url = serverUrlInput.value
         settings.token = apiTokenInput.value
+        settings.ownername = ownernameInput.value
         start(settings)
       })
     }

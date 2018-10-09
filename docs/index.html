@@ -146,7 +146,15 @@
 
   <script>
    var updateInterval = 20 * 1000
-   var settings
+    const queryParams = new URLSearchParams(window.location.search);
+    let settings = Array.from(queryParams.entries()).reduce(
+      (acc, [queryParamName, queryParamValue]) => {
+        acc[queryParamName] = queryParamValue;
+        return acc;
+      },
+      {},
+    );
+    settings = extendWithDefaults(settings);
 
    var radiator = document.getElementById('radiator')
    var error = document.getElementById('error')
@@ -225,13 +233,6 @@
       settings.token = opt.token || settings.token
       return settings
    }
-
-   var query = window.location.search.substring(1)
-   var settings = _.chain(query.split('&')).map(function(params) {
-      var p = params.split('=')
-      return [p[0], decodeURIComponent(p[1])]
-   }).fromPairs().value()
-   settings = extendWithDefaults(settings)
 
    if (settings && settings.mode && settings.url && settings.token) {
       start(settings)

@@ -23,12 +23,14 @@ function buildBackend(settings, callback) {
    var branchFilter = function(build) {
       return settings.branch ? build.branch.match(settings.branch) : true
    }
+   const repositoryFilter = build =>
+      settings.repositories ? settings.repositories.split(',').includes(build.repository) : true;
    return function() {
       backend(settings, function(err, data) {
          if (err) {
             return callback(err)
          }
-         var builds = data.filter(branchFilter)
+         let builds = data.filter(repositoryFilter).filter(branchFilter);
          builds = _.uniqBy(builds, function(b) {return b.repository + b.branch})
          builds = builds.sort(function(a, b) {return a.started.getTime() - b.started.getTime()})
          callback(undefined, builds)

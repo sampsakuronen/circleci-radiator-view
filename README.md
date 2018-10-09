@@ -36,6 +36,11 @@ any required parameters are missing.
 
    select backend to use, _circle_ (default), _travis_ or _jenkins_
 
+- repositories
+
+  Use for declaring wanted repositories in comma-separated format: `my-cool-project,helloWorldProject`
+  By default all repositories will be shown
+
 - branch
 
    Select the branch to show (from all repos found in the API end point).

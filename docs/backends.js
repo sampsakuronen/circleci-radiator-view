@@ -23,8 +23,12 @@ function buildBackend(settings, callback) {
    var branchFilter = function(build) {
       return settings.branch ? build.branch.match(settings.branch) : true
    }
-   const repositoryFilter = build =>
-      settings.repositories ? settings.repositories.split(',').includes(build.repository) : true;
+   var repositoryFilter = function(build) {
+      return settings.repositories
+            ? settings.repositories.split(",").includes(build.repository)
+            : true;
+   }
+
    return function() {
       backend(settings, function(err, data) {
          if (err) {

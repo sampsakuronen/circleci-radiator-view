@@ -134,10 +134,12 @@
 <body>
     <div class="settings-form">
         <h1>Configure API endpoint</h1>
-        <select id="mode"></select>
-        <input type="text" id="serverurl" placeholder="API base URL" autofocus></input>
-        <input type="password" id="apitoken" placeholder="API token"></input>
-        <input type="submit" value="Begin" id="submit"></input>
+        <form>
+          <select id="mode"></select>
+          <input type="text" id="serverurl" placeholder="API base URL" autofocus />
+          <input type="password" id="apitoken" placeholder="API token" />
+          <input type="submit" value="Begin" id="submit" />
+        </form>
   </div>
 
   <ul id="radiator" class="fill-height-or-more">
@@ -241,7 +243,7 @@
       var modeSelect = document.getElementById('mode')
       var serverUrlInput = document.getElementById('serverurl')
       var apiTokenInput = document.getElementById('apitoken')
-      var submit = document.getElementById('submit')
+      const form = document.querySelector('form');
       settingsForm.style.display = 'block'
 
       var defaults = backendOptions()
@@ -266,7 +268,8 @@
          settings.mode = modeSelect.options[modeSelect.selectedIndex].value
          setUISelections()
       })
-      submit.addEventListener('click', function() {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
          settingsForm.style.display = 'none'
          settings.url = serverUrlInput.value
          settings.token = apiTokenInput.value

@@ -1,4 +1,5 @@
 <!doctype html>
+
 <head>
   <title>CI radiator view</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -131,15 +132,16 @@
     .split-5 > li { max-width: calc(100% / 5); }
   }
 </style>
+
 <body>
-    <div class="settings-form">
-        <h1>Configure API endpoint</h1>
-        <form>
-          <select id="mode"></select>
-          <input type="text" id="serverurl" placeholder="API base URL" autofocus />
-          <input type="password" id="apitoken" placeholder="API token" />
-          <input type="submit" value="Begin" id="submit" />
-        </form>
+  <div class="settings-form">
+    <h1>Configure API endpoint</h1>
+    <form>
+      <select id="mode"></select>
+      <input type="text" id="serverurl" placeholder="API base URL" autofocus />
+      <input type="password" id="apitoken" placeholder="API token" />
+      <input type="submit" value="Begin" id="submit" />
+    </form>
   </div>
 
   <ul id="radiator" class="fill-height-or-more">
@@ -147,21 +149,21 @@
   <h1 id="error"></h1>
 
   <script>
-   var updateInterval = 20 * 1000
-    const queryParams = new URLSearchParams(window.location.search);
+    var updateInterval = 20 * 1000
+    const queryParams = new URLSearchParams(window.location.search)
     let settings = Array.from(queryParams.entries()).reduce(
       (acc, [queryParamName, queryParamValue]) => {
-        acc[queryParamName] = queryParamValue;
-        return acc;
+        acc[queryParamName] = queryParamValue
+        return acc
       },
       {},
-    );
-    settings = extendWithDefaults(settings);
+    )
+    settings = extendWithDefaults(settings)
 
-   var radiator = document.getElementById('radiator')
-   var error = document.getElementById('error')
+    var radiator = document.getElementById('radiator')
+    var error = document.getElementById('error')
 
-   function createJob(build) {
+    function createJob(build) {
       var name = `${build.repository}: ${decodeURIComponent(build.branch)}`
       var time = new Date(build.started)
 
@@ -171,7 +173,7 @@
       var author = document.createElement('div')
       var authorName = ''
       if (build.commit && build.commit.author) {
-           authorName = build.commit.author
+        authorName = build.commit.author
       }
 
       header.textContent = name
@@ -185,96 +187,96 @@
       listItem.className = build.state
 
       radiator.innerHTML = radiator.innerHTML + listItem.outerHTML
-   }
+    }
 
-   function calculateColumns(data) {
+    function calculateColumns(data) {
       var builds = data.length
       return Math.min(5, Math.ceil(builds / 5))
-   }
+    }
 
-   function setRadiatorColumns(columns) {
+    function setRadiatorColumns(columns) {
       radiator.classList.remove.apply(radiator.classList, [1, 2, 3, 4, 5, 6].map(n => 'split-' + n))
       radiator.classList.add('split-' + columns)
-   }
+    }
 
-   function createJobList(err, builds) {
+    function createJobList(err, builds) {
       if (err) {
-         return displayError(err)
+        return displayError(err)
       }
       setRadiatorColumns(calculateColumns(builds))
       radiator.innerHTML = ''
       radiator.style.display = 'flex'
 
       _.map(builds, createJob)
-   }
+    }
 
-   function displayError(message) {
+    function displayError(message) {
       radiator.style.display = 'none'
       radiator.innerHTML = ''
       error.textContent = message
       error.style.display = 'block'
       console.log(message)
-   }
+    }
 
-   function start(settings) {
+    function start(settings) {
       var backend = buildBackend(settings, createJobList) || displayError('Invalid backend ' + settings.mode)
       setInterval(backend, updateInterval)
       backend()
-      setInterval(function(){location.reload(true)}, 24 * 60 * 60 * 1000)
-   }
+      setInterval(function () { location.reload(true) }, 24 * 60 * 60 * 1000)
+    }
 
-   function extendWithDefaults(settings) {
+    function extendWithDefaults(settings) {
       var opts = backendOptions()
       var mode = settings.mode
       if (!opts[mode]) {
-         mode = _.keys(opts)[0]
-         settings.mode = mode
+        mode = _.keys(opts)[0]
+        settings.mode = mode
       }
       var opt = opts[settings.mode]
       settings.url = opt.url || settings.url
       settings.token = opt.token || settings.token
       return settings
-   }
+    }
 
-   if (settings && settings.mode && settings.url && settings.token) {
+    if (settings && settings.mode && settings.url && settings.token) {
       start(settings)
-   } else {
+    } else {
       var settingsForm = document.querySelector('.settings-form')
       var modeSelect = document.getElementById('mode')
       var serverUrlInput = document.getElementById('serverurl')
       var apiTokenInput = document.getElementById('apitoken')
-      var form = document.querySelector('form');
+      var form = document.querySelector('form')
       settingsForm.style.display = 'block'
 
       var defaults = backendOptions()
-      Object.keys(defaults).forEach(function(option) {
-         var o = document.createElement("option")
-         o.text = defaults[option].name
-         o.value = option
-         if (settings.mode == option) {
-            o.selected = true
-         }
-         modeSelect.add(o)
+      Object.keys(defaults).forEach(function (option) {
+        var o = document.createElement("option")
+        o.text = defaults[option].name
+        o.value = option
+        if (settings.mode == option) {
+          o.selected = true
+        }
+        modeSelect.add(o)
       })
-      var setUISelections = function(mode) {
-         settings.mode = mode || settings.mode
-         settings = extendWithDefaults(settings)
-         serverUrlInput.value = settings.url
-         apiTokenInput.value = settings.token
+      var setUISelections = function (mode) {
+        settings.mode = mode || settings.mode
+        settings = extendWithDefaults(settings)
+        serverUrlInput.value = settings.url
+        apiTokenInput.value = settings.token
       }
       setUISelections(settings.mode || defaults[_.keys(defaults)[0]].mode)
 
-      modeSelect.addEventListener('change', function(e) {
-         settings.mode = modeSelect.options[modeSelect.selectedIndex].value
-         setUISelections()
+      modeSelect.addEventListener('change', function (e) {
+        settings.mode = modeSelect.options[modeSelect.selectedIndex].value
+        setUISelections()
       })
-      form.addEventListener('submit', function(e) {
-        e.preventDefault();
-         settingsForm.style.display = 'none'
-         settings.url = serverUrlInput.value
-         settings.token = apiTokenInput.value
-         start(settings)
+      form.addEventListener('submit', function (e) {
+        e.preventDefault()
+        settingsForm.style.display = 'none'
+        settings.url = serverUrlInput.value
+        settings.token = apiTokenInput.value
+        start(settings)
       })
-   }
+    }
   </script>
 </body>

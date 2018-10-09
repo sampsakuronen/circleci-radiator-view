@@ -13,7 +13,7 @@ Supported backends are [CircleCI](https://circleci.com/), [Travis CI](https://tr
 
 ## Setup for CircleCI
 
-1. Get your API token from [your CirleCI account settings](https://circleci.com/account/api)
+1. Get your API token from [your CircleCI account settings](https://circleci.com/account/api)
 2. Open `index.html`
 
 
@@ -49,7 +49,7 @@ any required parameters are missing.
 
 - token
 
-   The auth token token to use. NOTE: CirleCI API tokens have read and write access. When you
+   The auth token token to use. NOTE: CircleCI API tokens have read and write access. When you
    use the query parameter, the token is visible in your browser history.
 
 - url

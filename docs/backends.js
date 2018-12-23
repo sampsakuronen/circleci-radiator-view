@@ -21,6 +21,8 @@ function buildBackend(settings, callback) {
       backend = jenkinsBackend
    } else if (settings.mode === 'cloudwatch') {
       backend = cloudWatchBackend
+   } else if (settings.mode === 'drone') {
+      backend = droneBackend
    }
    var branchFilter = function(build) {
       return settings.branch ? build.branch.match(settings.branch) : true
@@ -58,6 +60,11 @@ function backendOptions() {
       'cloudwatch': {
          name: 'AWS CloudWatch',
          url: 'https://monitoring.eu-west-1.amazonaws.com/',
+         token: undefined
+      },
+      'drone': {
+         name: 'Drone CI',
+         url: undefined,
          token: undefined
       }
    }
@@ -307,5 +314,85 @@ var cloudWatchBackend = function(settings, resultCallback) {
          }
       })
       resultCallback(undefined, builds)
+   })
+}
+
+var droneBackend = function(settings, resultCallback) {
+   var conf = settings.token.split(':')
+   var token = (conf.length === 2) ? conf[1] : conf[0]
+   var owners = (conf.length === 2) ? conf[0].split(',') : null
+
+   var droneRequest = function(url, cb) {
+      var handler = function(err, data) {
+         if (err) {
+            return resultCallback(err)
+         }
+         cb(data)
+      }
+      httpRequest(url, handler, {
+         Authorization: 'Bearer ' + token
+      })
+   }
+
+   var translateBuild = function(reponame, commits) {
+      return function(b) {
+         var branch = b.branch
+         if (branch.match('master')) {
+            var pr = /^refs\/pull\/(\d+)\/merge$/.exec(b.ref)
+            if (pr) {
+               branch = '#' + pr[1]
+            }
+         }
+         var result = 'failed'
+         if (b.status === 'running') {
+            result = 'started'
+         } else if (b.status === 'failure') {
+            result = 'canceled'
+         } else if (b.status === 'error') {
+            result = 'failed'
+         } else if (b.status === 'success') {
+            result = 'success'
+         }
+         return {
+            repository: reponame,
+            branch: branch,
+            started: new Date(b.started_at * 1000),
+            state: result,
+            commit: {
+               created: new Date(b.created_at * 1000),
+               author: b.author,
+               hash: b.commit
+            }
+         }
+      }
+   }
+
+   var parseBuilds = function(repos) {
+      var responses = []
+      repos.forEach(function(r) {
+         droneRequest(settings.url + '/api/repos/' + r.full_name + '/builds', function(data) {
+            var builds = data.map(translateBuild(r.name, data))
+            responses.push(builds)
+            if (responses.length === repos.length) {
+               var result = responses.reduce(function(acc, item) {
+                  return item.length > 0 ? acc.concat(item) : acc
+               }, [])
+               resultCallback(undefined, result)
+            }
+         })
+      })
+   }
+
+   var translateRepo = function(repo) {
+      return {id: repo.id, name: repo.name, full_name: repo.full_name, owner: repo.owner}
+   }
+
+   var ownerFilter = function(repo) {
+      return owners ? owners.includes(repo.owner) : true
+   }
+
+   var url = settings.url + '/api/user/repos'
+   droneRequest(url, function(data) {
+      parseBuilds(data.map(translateRepo).filter(ownerFilter))
    })
 }

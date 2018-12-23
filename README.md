@@ -5,7 +5,7 @@ This project simply displays all your projects and selected branches with status
 
 Production (or any other) environment monitoring is another good practice. Radiate your alarms as well as builds!
 
-Supported CI backends are [CircleCI](https://circleci.com/), [Travis CI](https://travis-ci.org/), [Jenkins](https://jenkins.io).
+Supported CI backends are [CircleCI](https://circleci.com/), [Travis CI](https://travis-ci.org/), [Jenkins](https://jenkins.io), [Drone](https://drone.io).
 
 For alarm monitoring, [AWS CloudWatch Alarms](https://aws.amazon.com) is supported.
 
@@ -40,6 +40,14 @@ For alarm monitoring, [AWS CloudWatch Alarms](https://aws.amazon.com) is support
   * Modify the URL to contain the proper region (defaults to eu-west-1)
   * Set the access key and secret key as token, separated by a colon, ie. *ACCESSKEY:longsecretkey*.
 
+## Setup for Drone
+
+1. Get your API token from (https://drone.host/account/token)
+2. Open `index.html?mode=drone`
+3. Add your Drone address to the URL field
+4. Add your token to the token field
+   * Set optional comma separated owner filter(s) into the token field, separated by a colon, ie. *owner,owner2:thetokenhash*
+
 ## Query parameters
 
 All options can be set either with a query parameter or from the setup form, which is shown when
@@ -47,7 +55,7 @@ any required parameters are missing.
 
 - mode
 
-   select backend to use, _circle_ (default), _travis_ or _jenkins_
+   select backend to use, _circle_ (default), _travis_, _jenkins_, _cloudwatch_ or _drone_
 
 - branch
 
@@ -64,7 +72,7 @@ any required parameters are missing.
 
 - url
 
-   Only for jenkins, really: the Jenkins job URL
+   Only for _jenkins_ and _drone_, really: the Jenkins job URL or the Drone base URL.
 
 
 Example with all parameters in use:
@@ -84,7 +92,11 @@ Jenkins example:
 
 ## Hosted version
 
-Available here: https://sampsakuronen.github.io/circleci-radiator-view/ or here: https://langma.github.io/radiator-view/
+Available here:
+
+- https://sampsakuronen.github.io/circleci-radiator-view/
+- https://langma.github.io/radiator-view/
+- https://rofafor.github.io/radiator-view/
 
 
 ## Licence

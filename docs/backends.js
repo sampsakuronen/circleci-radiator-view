@@ -167,6 +167,11 @@ var circleBackend = function(settings, resultCallback) {
         return acc.concat(
           Object.keys(repository.branches).map(function(branchName) {
             var branch = repository.branches[branchName]
+            var hasNeverBuilt = !branch.running_builds && !branch.recent_builds
+            if (hasNeverBuilt) {
+              console.warn('Repository', repository.reponame, 'has a branch named', branchName, 'that has never been built')
+              return
+            }
             var buildIsRunning = branch.running_builds.length != 0
             var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0]
             var status = buildIsRunning ? build.status : build.outcome
@@ -183,7 +188,7 @@ var circleBackend = function(settings, resultCallback) {
             }
           })
         )
-      }, [])
+      }, []).filter(function (build) { return !!build })
       resultCallback(undefined, builds)
     },
     {

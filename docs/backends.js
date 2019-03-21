@@ -320,7 +320,7 @@ var cloudWatchBackend = function(settings, resultCallback) {
 var droneBackend = function(settings, resultCallback) {
    var conf = settings.token.split(':')
    var token = (conf.length === 2) ? conf[1] : conf[0]
-   var owners = (conf.length === 2) ? conf[0].split(',') : null
+   var namespaces = (conf.length === 2) ? conf[0].split(',') : null
 
    var droneRequest = function(url, cb) {
       var handler = function(err, data) {
@@ -334,21 +334,34 @@ var droneBackend = function(settings, resultCallback) {
       })
    }
 
+   var latestBuild = function(builds, build) {
+       let found = builds.find(item => item && item.branch === build.branch);
+       if (found) {
+          let index = builds.indexOf(found);
+          if (~index && builds[index].started < found.started) {
+              builds[index] = found;
+              return builds
+          }
+       }
+       return build ? builds.concat(build) : builds
+   }
+
    var translateBuild = function(reponame, commits) {
       return function(b) {
-         var branch = b.branch
-         if (branch.match('master')) {
-            var pr = /^refs\/pull\/(\d+)\/merge$/.exec(b.ref)
+         var branch = b.source
+         if (b.event === 'pull_request') {
+            var pr = /^refs\/pull\/(\d+)\/head/.exec(b.ref)
             if (pr) {
                branch = '#' + pr[1]
             }
          }
+
          var result = 'failed'
-         if (b.status === 'running') {
+         if (b.status === 'running' || b.status === 'pending') {
             result = 'started'
-         } else if (b.status === 'failure') {
+        } else if (b.status === 'killed') {
             result = 'canceled'
-         } else if (b.status === 'error') {
+        } else if (b.status === 'failure') {
             result = 'failed'
          } else if (b.status === 'success') {
             result = 'success'
@@ -356,12 +369,12 @@ var droneBackend = function(settings, resultCallback) {
          return {
             repository: reponame,
             branch: branch,
-            started: new Date(b.started_at * 1000),
+            started: new Date(b.started * 1000),
             state: result,
             commit: {
-               created: new Date(b.created_at * 1000),
-               author: b.author,
-               hash: b.commit
+               created: undefined,
+               author: b.author_login,
+               hash: undefined
             }
          }
       }
@@ -370,8 +383,8 @@ var droneBackend = function(settings, resultCallback) {
    var parseBuilds = function(repos) {
       var responses = []
       repos.forEach(function(r) {
-         droneRequest(settings.url + '/api/repos/' + r.full_name + '/builds', function(data) {
-            var builds = data.map(translateBuild(r.name, data))
+         droneRequest(settings.url + '/api/repos/' + r.full_name + '/builds?page=1', function(data) {
+            var builds = data.map(translateBuild(r.name, data)).reduce(latestBuild, [])
             responses.push(builds)
             if (responses.length === repos.length) {
                var result = responses.reduce(function(acc, item) {
@@ -384,15 +397,15 @@ var droneBackend = function(settings, resultCallback) {
    }
 
    var translateRepo = function(repo) {
-      return {id: repo.id, name: repo.name, full_name: repo.full_name, owner: repo.owner}
+      return {id: repo.id, name: repo.name, full_name: repo.slug, namespace: repo.namespace}
    }
 
-   var ownerFilter = function(repo) {
-      return owners ? owners.includes(repo.owner) : true
+   var nsFilter = function(repo) {
+      return namespaces ? namespaces.includes(repo.namespace) : true
    }
 
    var url = settings.url + '/api/user/repos'
    droneRequest(url, function(data) {
-      parseBuilds(data.map(translateRepo).filter(ownerFilter))
+      parseBuilds(data.map(translateRepo).filter(nsFilter))
    })
 }

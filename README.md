@@ -42,11 +42,11 @@ For alarm monitoring, [AWS CloudWatch Alarms](https://aws.amazon.com) is support
 
 ## Setup for Drone
 
-1. Get your API token from (https://drone.host/account/token)
+1. Get your personal token from (https://drone.host/account)
 2. Open `index.html?mode=drone`
-3. Add your Drone address to the URL field
+3. Add your Drone address to the URL field.
 4. Add your token to the token field
-   * Set optional comma separated owner filter(s) into the token field, separated by a colon, ie. *owner,owner2:thetokenhash*
+   * Set optional comma separated namespace filter(s) into the token field, separated by a colon, ie. *ns,ns2:thetokenhash*
 
 ## Query parameters
 

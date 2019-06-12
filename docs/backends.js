@@ -14,6 +14,7 @@ Build type:
 */
 
 function buildBackend(settings, callback) {
+  var currentTime = new Date().getTime()
   var backend = circleBackend
   if (settings.mode === 'travis') {
     backend = travisBackend
@@ -22,6 +23,13 @@ function buildBackend(settings, callback) {
   }
   var branchFilter = function(build) {
     return settings.branch ? build.branch.match(settings.branch) : true
+  }
+  var dateFilter = function(build) {
+    if (settings.timeWindowDays) {
+      return (currentTime - build.started.getTime()) < (settings.timeWindowDays * (1000 * 60 * 60 * 24) );
+    } else {
+      return true
+    }
   }
   var repositoryFilter = function(build) {
     return settings.repositories
@@ -34,7 +42,7 @@ function buildBackend(settings, callback) {
       if (err) {
         return callback(err)
       }
-      let builds = data.filter(repositoryFilter).filter(branchFilter)
+      let builds = data.filter(repositoryFilter).filter(branchFilter).filter(dateFilter)
       builds = _.uniqBy(builds, function(b) {
         return b.repository + b.branch
       })

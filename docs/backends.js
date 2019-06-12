@@ -165,7 +165,6 @@ var circleBackend = function(settings, resultCallback) {
     var currentWorkflowStatuses = workflowValues.
       filter(x => new Date(x.created_at).getTime() == latestTime).
       map(x => x.status)
-    console.log(currentWorkflowStatuses)
     if (currentWorkflowStatuses.includes("failed")) {
       return "failed"
     }

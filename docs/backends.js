@@ -157,6 +157,21 @@ var travisBackend = function(settings, resultCallback) {
 var circleBackend = function(settings, resultCallback) {
   var url = settings.url + '?circle-token=' + settings.token
 
+  function findLatestCreatedAtTime(workflowValues) {
+    return workflowValues.map(x => new Date(x.created_at).getTime()).sort()[workflowValues.length - 1]
+  }
+
+  function currentWorkflowsStatus(workflowValues, latestTime) {
+    var currentWorkflowStatuses = workflowValues.
+      filter(x => new Date(x.created_at).getTime() == latestTime).
+      map(x => x.status)
+    console.log(currentWorkflowStatuses)
+    if (currentWorkflowStatuses.includes("failed")) {
+      return "failed"
+    }
+    return currentWorkflowStatuses[0]
+  }
+
   httpRequest(
     url,
     function(err, data) {
@@ -175,6 +190,11 @@ var circleBackend = function(settings, resultCallback) {
             var buildIsRunning = branch.running_builds.length != 0
             var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0]
             var status = buildIsRunning ? build.status : build.outcome
+            if (branch.is_using_workflows) {
+              var workflowValues = Object.values(branch.latest_workflows)
+              latestCreatedAtTime = findLatestCreatedAtTime(workflowValues)
+              status = currentWorkflowsStatus(workflowValues, latestCreatedAtTime)
+            }
             return {
               repository: repository.reponame,
               branch: branchName,

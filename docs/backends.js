@@ -39,7 +39,7 @@ function buildBackend(settings, callback) {
         return b.repository + b.branch
       })
       builds = builds.sort(function(a, b) {
-        return a.started.getTime() - b.started.getTime()
+        return b.started.getTime() - a.started.getTime()
       })
       callback(undefined, builds)
     })

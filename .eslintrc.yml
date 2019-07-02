@@ -1,0 +1,18 @@
+env:
+  browser: true
+extends: 'eslint:recommended'
+parserOptions:
+  ecmaVersion: 3
+rules:
+  indent:
+    - error
+    - 3
+  linebreak-style:
+    - error
+    - unix
+  quotes:
+    - error
+    - single
+  semi:
+    - error
+    - never 

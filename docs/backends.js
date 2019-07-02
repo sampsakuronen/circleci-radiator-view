@@ -374,13 +374,20 @@ var droneBackend = function(settings, resultCallback) {
       return build ? builds.concat(build) : builds
    }
 
-   var translateBuild = function(reponame, commits) {
+   var translateBuild = function(reponame) {
       return function(b) {
+         var closesPr = undefined
          var branch = b.source
          if (b.event === 'pull_request') {
             var pr = /^refs\/pull\/(\d+)\/head/.exec(b.ref)
             if (pr) {
                branch = '#' + pr[1]
+            }
+         } else if (b.target === 'master') {
+            // check for PR merges. Hack, but the drone API returns stale PR builds also.
+            var closes = /^Merge pull request (.*?) from/.exec(b.message)
+            if (closes) {
+               closesPr = closes[1]
             }
          }
 
@@ -397,6 +404,7 @@ var droneBackend = function(settings, resultCallback) {
          return {
             repository: reponame,
             branch: branch,
+            closesPr: closesPr,
             started: new Date(b.started * 1000),
             state: result,
             commit: {
@@ -412,10 +420,18 @@ var droneBackend = function(settings, resultCallback) {
       var responses = []
       repos.forEach(function(r) {
          droneRequest(settings.url + '/api/repos/' + r.full_name + '/builds?page=1', function(data) {
-            var builds = data.map(translateBuild(r.name, data)).reduce(latestBuild, [])
+            var builds = data.map(translateBuild(r.name)).reduce(latestBuild, [])
             responses.push(builds)
             if (responses.length === repos.length) {
                var result = responses.reduce(function(acc, item) {
+                  // find PRs that are closed by other builds
+                  var closedPrs = item.reduce(function(acc, i) {
+                     return i.closesPr ? acc.concat(i.closesPr) : acc
+                  }, [])
+                  // filter closed PR builds from build list
+                  item = item.filter(function(i) {
+                     return !~closedPrs.indexOf(i.branch)
+                  })
                   return item.length > 0 ? acc.concat(item) : acc
                }, [])
                resultCallback(undefined, result)
@@ -429,7 +445,10 @@ var droneBackend = function(settings, resultCallback) {
    }
 
    var repoFilter = function(repo) {
-      return namespaces ? namespaces.includes(repo.namespace) && repo.active : repo.active
+      if (namespaces && !namespaces.includes(repo.namespace)) {
+         return false
+      }
+      return repo.active
    }
 
    var url = settings.url + '/api/user/repos'

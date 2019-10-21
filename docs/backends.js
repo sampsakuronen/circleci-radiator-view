@@ -361,6 +361,9 @@ var droneBackend = function(settings, resultCallback) {
    }
 
    var latestBuild = function(builds, build) {
+      if (build === undefined) {
+         return builds
+      }
       var found = builds.find(function(item) {
          return item && item.branch === build.branch
       })
@@ -375,7 +378,16 @@ var droneBackend = function(settings, resultCallback) {
    }
 
    var translateBuild = function(reponame) {
+      var weekInSeconds = 7 * 24 * 60 * 60
+      var weekAgo = new Date().getTime() / 1000 - weekInSeconds
       return function(b) {
+         if (b.event === 'pull_request' || b.target !== 'master') {
+            if (b.updated < weekAgo) {
+               // ignore old PR builds and old branch builds
+               console.log('Ignore build', b, 'weekago', weekAgo)
+               return undefined
+            }
+         }
          var closesPr = undefined
          var branch = b.source
          if (b.event === 'pull_request') {

@@ -1,148 +1,25 @@
 <!doctype html>
+
 <head>
   <title>CI radiator view</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.min.js"></script>
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.45.0.min.js"></script>
   <script src="backends.js"></script>
 </head>
-<style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    box-sizing:border-box;
-    background: white;
-    font-family: "Roboto", Helvetica, Arial, sans-serif;
-  }
-  ul {
-    padding: 0;
-    margin: 0;
-    height: 100%;
-    width: 100%;
-  }
-  li {
-    list-style: none;
-    color: white;
-    text-align: center;
-    border-top: 1px solid rgba(0,0,0, 0.3);
-    background-color: #e4e4e4;
-  }
-  li:first-child {
-    border-top: 0;
-  }
-  .success, .fixed, .passed {
-    background-color: #42c88a;
-  }
-  .failed, .infrastructure_fail, .timedout, .errored  {
-    background-color: #ed5c5c;
-  }
-  .not_running, .queued, .scheduled, .canceled {
-    background-color: #ab7fd1;
-  }
-  @keyframes pulse {
-    50% { background-color: rgba(102, 211, 228, 0.6) }
-  }
-  .running, .started {
-    animation: pulse 5s ease-in-out infinite;
-    background-color: #66d3e4;
-    background-color: rgba(102, 211, 228, 1.0);
-  }
 
-  .fill-height-or-more {
-    flex-direction: column;
-    display: flex;
-    flex-wrap: wrap;
-  }
-
-  .fill-height-or-more > li {
-    flex: 1 0 20%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    box-sizing: border-box;
-    width: 100%;
-  }
-
-  .fill-height-or-more > li {
-    border-right: 1px solid rgba(0,0,0, 0.3);
-  }
-
-  #radiator {
-    display: none;
-  }
-
-  #error {
-    display: none;
-    text-align: center;
-  }
-
-  .settings-form {
-    display: none;
-    align-items: center;
-    justify-content: left;
-    height: inherit;
-    margin: 0% 10% 0% 10%;
-  }
-
-  .settings-form input[type=text],
-  .settings-form input[type=password] {
-    width: 100%;
-    padding: 12px 20px;
-    margin: 8px 0;
-    box-sizing: border-box;
-  }
-
-  .settings-form input[type=submit] {
-    transition-duration: 0.1s;
-    background-color: white;
-    color: black;
-    border: 2px solid #4CAF50;
-    border-radius: 4px;
-    width: 100%;
-    margin-top: 40px;
-    padding: 12px 28px;
-  }
-
-  .settings-form input[type=submit]:hover,
-  .settings-form input[type=submit]:focus {
-    background-color: #4CAF50;
-    color: white;
-    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
-  }
-
-  .settings-form label {
-    display: block;
-  }
-
-  .settings-form input[type=text]:focus,
-  .settings-form input[type=password]:focus {
-    border: 3px solid #555;
-  }
-
-  @media (min-width: 410px) {
-    .split-1 > li { max-width: calc(100% / 1); }
-    .split-2 > li { max-width: calc(100% / 2); }
-    .split-3 > li { max-width: calc(100% / 3); }
-    .split-4 > li { max-width: calc(100% / 4); }
-    .split-5 > li { max-width: calc(100% / 5); }
-    .split-6 > li { max-width: calc(100% / 6); }
-    .split-7 > li { max-width: calc(100% / 7); }
-    .split-8 > li { max-width: calc(100% / 8); }
-    .split-9 > li { max-width: calc(100% / 9); }
-    .split-10 > li { max-width: calc(100% / 10); }
-  }
-</style>
 <body>
   <div class="settings-form">
     <h1>Configure API endpoint</h1>
-    <select id="mode"></select>
-    <input type="text" id="serverurl" placeholder="API base URL" autofocus></input>
-    <input type="password" id="apitoken" placeholder="API token"></input>
-    <input type="submit" value="Begin" id="submit"></input>
+    <form>
+      <select id="mode"></select>
+      <input type="text" id="serverurl" placeholder="API base URL" autofocus />
+      <input type="password" id="apitoken" placeholder="API token" />
+      <input type="submit" value="Begin" id="submit" />
+    </form>
   </div>
 
   <ul id="radiator" class="fill-height-or-more">
@@ -151,7 +28,15 @@
 
   <script>
     var updateInterval = 20 * 1000
-    var settings
+    const queryParams = new URLSearchParams(window.location.search)
+    let settings = Array.from(queryParams.entries()).reduce(
+      (acc, [queryParamName, queryParamValue]) => {
+        acc[queryParamName] = queryParamValue
+        return acc
+      },
+      {},
+    )
+    settings = extendWithDefaults(settings)
 
     var radiator = document.getElementById('radiator')
     var error = document.getElementById('error')
@@ -220,7 +105,7 @@
       var backend = buildBackend(settings, createJobList) || displayError('Invalid backend ' + settings.mode)
       setInterval(backend, updateInterval)
       backend()
-      setInterval(function(){location.reload(true)}, 24 * 60 * 60 * 1000)
+      setInterval(function () { location.reload(true) }, 24 * 60 * 60 * 1000)
     }
 
     function extendWithDefaults(settings) {
@@ -236,13 +121,6 @@
       return settings
     }
 
-    var query = window.location.search.substring(1)
-    var settings = _.chain(query.split('&')).map(function(params) {
-      var p = params.split('=')
-      return [p[0], decodeURIComponent(p[1])]
-    }).fromPairs().value()
-    settings = extendWithDefaults(settings)
-
     if (settings && settings.mode && settings.url && settings.token) {
       start(settings)
     } else {
@@ -250,11 +128,11 @@
       var modeSelect = document.getElementById('mode')
       var serverUrlInput = document.getElementById('serverurl')
       var apiTokenInput = document.getElementById('apitoken')
-      var submit = document.getElementById('submit')
+      var form = document.querySelector('form')
       settingsForm.style.display = 'block'
 
       var defaults = backendOptions()
-      Object.keys(defaults).forEach(function(option) {
+      Object.keys(defaults).forEach(function (option) {
         var o = document.createElement("option")
         o.text = defaults[option].name
         o.value = option
@@ -263,7 +141,7 @@
         }
         modeSelect.add(o)
       })
-      var setUISelections = function(mode) {
+      var setUISelections = function (mode) {
         settings.mode = mode || settings.mode
         settings = extendWithDefaults(settings)
         serverUrlInput.value = settings.url
@@ -271,11 +149,12 @@
       }
       setUISelections(settings.mode || defaults[_.keys(defaults)[0]].mode)
 
-      modeSelect.addEventListener('change', function(e) {
+      modeSelect.addEventListener('change', function (e) {
         settings.mode = modeSelect.options[modeSelect.selectedIndex].value
         setUISelections()
       })
-      submit.addEventListener('click', function() {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault()
         settingsForm.style.display = 'none'
         settings.url = serverUrlInput.value
         settings.token = apiTokenInput.value

@@ -1,0 +1,158 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  background: white;
+  font-family: 'Roboto', Helvetica, Arial, sans-serif;
+}
+ul {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+li {
+  list-style: none;
+  color: white;
+  text-align: center;
+  border-top: 1px solid rgba(0, 0, 0, 0.3);
+  background-color: #e4e4e4;
+}
+li:first-child {
+  border-top: 0;
+}
+.success,
+.fixed,
+.passed {
+  background-color: #42c88a;
+}
+.failed,
+.infrastructure_fail,
+.timedout,
+.errored {
+  background-color: #ed5c5c;
+}
+.not_running,
+.queued,
+.scheduled,
+.canceled {
+  background-color: #ab7fd1;
+}
+@keyframes pulse {
+  50% {
+    background-color: rgba(102, 211, 228, 0.6);
+  }
+}
+.running,
+.started {
+  animation: pulse 5s ease-in-out infinite;
+  background-color: #66d3e4;
+  background-color: rgba(102, 211, 228, 1);
+}
+
+.fill-height-or-more {
+  flex-direction: column;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.fill-height-or-more > li {
+  flex: 1 0 20%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.fill-height-or-more > li {
+  border-right: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+#radiator {
+  display: none;
+}
+
+#error {
+  display: none;
+  text-align: center;
+}
+
+.settings-form {
+  display: none;
+  align-items: center;
+  justify-content: left;
+  height: inherit;
+  margin: 0% 10% 0% 10%;
+}
+
+.settings-form input[type='text'],
+.settings-form input[type='password'] {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  box-sizing: border-box;
+}
+
+.settings-form input[type='submit'] {
+  transition-duration: 0.1s;
+  background-color: white;
+  color: black;
+  border: 2px solid #4caf50;
+  border-radius: 4px;
+  width: 100%;
+  margin-top: 40px;
+  padding: 12px 28px;
+}
+
+.settings-form input[type='submit']:hover,
+.settings-form input[type='submit']:focus {
+  background-color: #4caf50;
+  color: white;
+  box-shadow: 0 12px 16px 0 rgba(0, 0, 0, 0.24), 0 17px 50px 0 rgba(0, 0, 0, 0.19);
+}
+
+.settings-form label {
+  display: block;
+}
+
+.settings-form input[type='text']:focus,
+.settings-form input[type='password']:focus {
+  border: 3px solid #555;
+}
+
+@media (min-width: 410px) {
+  .split-1 > li {
+    max-width: calc(100% / 1);
+  }
+  .split-2 > li {
+    max-width: calc(100% / 2);
+  }
+  .split-3 > li {
+    max-width: calc(100% / 3);
+  }
+  .split-4 > li {
+    max-width: calc(100% / 4);
+  }
+  .split-5 > li {
+    max-width: calc(100% / 5);
+  }
+  .split-6 > li {
+    max-width: calc(100% / 6);
+  }
+  .split-7 > li {
+    max-width: calc(100% / 7);
+  }
+  .split-8 > li {
+    max-width: calc(100% / 8);
+  }
+  .split-9 > li {
+    max-width: calc(100% / 9);
+  }
+  .split-10 > li {
+    max-width: calc(100% / 10);
+  }
+}

@@ -407,7 +407,6 @@ var droneBackend = function(settings, resultCallback) {
       if (b.event === 'pull_request' || b.target !== 'master') {
         if (b.updated < weekAgo) {
           // ignore old PR builds and old branch builds
-          console.log('Ignore build', b, 'weekago', weekAgo)
           return undefined
         }
       }

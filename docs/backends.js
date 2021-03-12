@@ -19,6 +19,10 @@ function buildBackend(settings, callback) {
     backend = travisBackend
   } else if (settings.mode === 'jenkins') {
     backend = jenkinsBackend
+  } else if (settings.mode === 'cloudwatch') {
+    backend = cloudWatchBackend
+  } else if (settings.mode === 'drone') {
+    backend = droneBackend
   }
   var branchFilter = function(build) {
     return settings.branch ? build.branch.match(settings.branch) : true
@@ -60,6 +64,16 @@ function backendOptions() {
     },
     jenkins: {
       name: 'Jenkins CI',
+      url: undefined,
+      token: undefined
+    },
+    cloudwatch: {
+      name: 'AWS CloudWatch',
+      url: 'https://monitoring.eu-west-1.amazonaws.com/',
+      token: undefined
+    },
+    drone: {
+      name: 'Drone CI',
       url: undefined,
       token: undefined
     }
@@ -156,39 +170,48 @@ var travisBackend = function(settings, resultCallback) {
 
 var circleBackend = function(settings, resultCallback) {
   var url = settings.url + '?circle-token=' + settings.token
-
   httpRequest(
     url,
     function(err, data) {
       if (err) {
         return resultCallback(err)
       }
-      var builds = data.reduce(function(acc, repository) {
-        return acc.concat(
-          Object.keys(repository.branches).map(function(branchName) {
-            var branch = repository.branches[branchName]
-            var hasNeverBuilt = !branch.running_builds && !branch.recent_builds
-            if (hasNeverBuilt) {
-              console.warn('Repository', repository.reponame, 'has a branch named', branchName, 'that has never been built')
-              return
-            }
-            var buildIsRunning = branch.running_builds.length != 0
-            var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0]
-            var status = buildIsRunning ? build.status : build.outcome
-            return {
-              repository: repository.reponame,
-              branch: branchName,
-              started: new Date(build.pushed_at),
-              state: status,
-              commit: {
-                created: new Date(build.pushed_at),
-                author: null,
-                hash: build.vcs_revision
+      var builds = data
+        .reduce(function(acc, repository) {
+          return acc.concat(
+            Object.keys(repository.branches).map(function(branchName) {
+              var branch = repository.branches[branchName]
+              var hasNeverBuilt = !branch.running_builds && !branch.recent_builds
+              if (hasNeverBuilt) {
+                console.warn(
+                  'Repository',
+                  repository.reponame,
+                  'has a branch named',
+                  branchName,
+                  'that has never been built'
+                )
+                return
               }
-            }
-          })
-        )
-      }, []).filter(function (build) { return !!build })
+              var buildIsRunning = branch.running_builds.length != 0
+              var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0]
+              var status = buildIsRunning ? build.status : build.outcome
+              return {
+                repository: repository.reponame,
+                branch: branchName,
+                started: new Date(build.pushed_at),
+                state: status,
+                commit: {
+                  created: new Date(build.pushed_at),
+                  author: null,
+                  hash: build.vcs_revision
+                }
+              }
+            })
+          )
+        }, [])
+        .filter(function(build) {
+          return !!build
+        })
       resultCallback(undefined, builds)
     },
     {
@@ -310,5 +333,166 @@ var jenkinsBackend = function(settings, resultCallback) {
       )
     }, [])
     resultCallback(undefined, builds)
+  })
+}
+
+var cloudWatchBackend = function(settings, resultCallback) {
+  var creds = settings.token.split(':')
+  var region = settings.url.split('.')[1]
+  var cloudwatch = new AWS.CloudWatch({
+    accessKeyId: creds[0],
+    secretAccessKey: creds[1],
+    region: region
+  })
+  var params = {}
+  cloudwatch.describeAlarms(params, function(err, data) {
+    if (err) {
+      return resultCallback(err)
+    }
+    var builds = data.MetricAlarms.map(function(alarm) {
+      var result = 'canceled'
+      if (alarm.StateValue === 'OK') {
+        result = 'success'
+      } else if (alarm.StateValue === 'ALARM') {
+        result = 'failed'
+      }
+      return {
+        repository: alarm.AlarmName,
+        started: alarm.StateUpdatedTimestamp,
+        state: result
+      }
+    })
+    resultCallback(undefined, builds)
+  })
+}
+
+var droneBackend = function(settings, resultCallback) {
+  var conf = settings.token.split(':')
+  var token = conf.length === 2 ? conf[1] : conf[0]
+  var namespaces = conf.length === 2 ? conf[0].split(',') : null
+
+  var droneRequest = function(url, cb) {
+    var handler = function(err, data) {
+      if (err) {
+        return resultCallback(err)
+      }
+      cb(data)
+    }
+    httpRequest(url, handler, {
+      Authorization: 'Bearer ' + token
+    })
+  }
+
+  var latestBuild = function(builds, build) {
+    if (build === undefined) {
+      return builds
+    }
+    var found = builds.find(function(item) {
+      return item && item.branch === build.branch
+    })
+    if (found) {
+      var index = builds.indexOf(found)
+      if (~index && builds[index].started < found.started) {
+        builds[index] = found
+        return builds
+      }
+    }
+    return build ? builds.concat(build) : builds
+  }
+
+  var translateBuild = function(reponame) {
+    var weekInSeconds = 7 * 24 * 60 * 60
+    var weekAgo = new Date().getTime() / 1000 - weekInSeconds
+    return function(b) {
+      if (b.event === 'pull_request' || b.target !== 'master') {
+        if (b.updated < weekAgo) {
+          // ignore old PR builds and old branch builds
+          return undefined
+        }
+      }
+      var closesPr = undefined
+      var branch = b.source
+      if (b.event === 'pull_request') {
+        var pr = /^refs\/pull\/(\d+)\/head/.exec(b.ref)
+        if (pr) {
+          branch = '#' + pr[1]
+        }
+      } else if (b.target === 'master') {
+        // check for PR merges. Hack, but the drone API returns stale PR builds also.
+        var closes = /^Merge pull request (.*?) from/.exec(b.message) || /\((.*)\)/.exec(b.message)
+        if (closes) {
+          closesPr = closes[1]
+        }
+      }
+
+      var result = 'failed'
+      if (b.status === 'running' || b.status === 'pending') {
+        result = 'started'
+      } else if (b.status === 'killed') {
+        result = 'canceled'
+      } else if (b.status === 'failure') {
+        result = 'failed'
+      } else if (b.status === 'success') {
+        result = 'success'
+      }
+      return {
+        repository: reponame,
+        branch: branch,
+        closesPr: closesPr,
+        started: new Date(b.started * 1000),
+        state: result,
+        commit: {
+          created: undefined,
+          author: b.author_name || b.author_login,
+          hash: undefined
+        }
+      }
+    }
+  }
+
+  var parseBuilds = function(repos) {
+    var responses = []
+    repos.forEach(function(r) {
+      droneRequest(settings.url + '/api/repos/' + r.full_name + '/builds?page=1', function(data) {
+        var builds = data.map(translateBuild(r.name)).reduce(latestBuild, [])
+        responses.push(builds)
+        if (responses.length === repos.length) {
+          var result = responses.reduce(function(acc, item) {
+            // find PRs that are closed by other builds
+            var closedPrs = item.reduce(function(acc, i) {
+              return i.closesPr ? acc.concat(i.closesPr) : acc
+            }, [])
+            // filter closed PR builds from build list
+            item = item.filter(function(i) {
+              return !~closedPrs.indexOf(i.branch)
+            })
+            return item.length > 0 ? acc.concat(item) : acc
+          }, [])
+          resultCallback(undefined, result)
+        }
+      })
+    })
+  }
+
+  var translateRepo = function(repo) {
+    return {
+      id: repo.id,
+      name: repo.name,
+      full_name: repo.slug,
+      namespace: repo.namespace,
+      active: repo.active
+    }
+  }
+
+  var repoFilter = function(repo) {
+    if (namespaces && !namespaces.includes(repo.namespace)) {
+      return false
+    }
+    return repo.active
+  }
+
+  var url = settings.url + '/api/user/repos'
+  droneRequest(url, function(data) {
+    parseBuilds(data.map(translateRepo).filter(repoFilter))
   })
 }

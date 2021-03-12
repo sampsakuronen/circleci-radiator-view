@@ -140,4 +140,19 @@ li:first-child {
   .split-5 > li {
     max-width: calc(100% / 5);
   }
+  .split-6 > li {
+    max-width: calc(100% / 6);
+  }
+  .split-7 > li {
+    max-width: calc(100% / 7);
+  }
+  .split-8 > li {
+    max-width: calc(100% / 8);
+  }
+  .split-9 > li {
+    max-width: calc(100% / 9);
+  }
+  .split-10 > li {
+    max-width: calc(100% / 10);
+  }
 }
